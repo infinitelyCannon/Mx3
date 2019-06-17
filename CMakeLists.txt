@@ -7,7 +7,7 @@ find_package(FMOD REQUIRED)
 
 set(${SOURCES} Mx3.cpp)
 
-add_library(Mx3 SOURCES)
+add_library(Mx3::Mx3 SOURCES)
 target_include_directories(Mx3 PUBLIC "${CMAKE_SOURCE_DIR}/include")
 target_compile_features(Mx3 PUBLIC cxx_std_11)
 set_target_properties(Mx3 PROPERTIES CXX_EXTENSIONS_OFF)
