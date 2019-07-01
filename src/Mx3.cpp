@@ -1,177 +1,158 @@
 #include "Mx3.hpp"
-#include "MultiSong.hpp"
+#include "fmod_errors.h"
 #include <iostream>
 
-Mx3::Mx3(int device, int frequency, uint32_t flags, void *win, void *clsid) : mChannels()
+// Component Headers
+#include "LoopRegion.hpp"
+
+Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
+	mSystem(nullptr),
+	mChannel(nullptr),
+	result(FMOD_OK),
+	version(0)
 {
-    BASS_Init(device, frequency, flags, win, clsid);
+	result = FMOD::System_Create(&mSystem);
+	ErrorCheck(result);
+
+	result = mSystem->getVersion(&version);
+	ErrorCheck(result);
+
+	if(version < FMOD_VERSION)
+		std::cerr << "FMOD library version " << version << " doesn't match header version " << FMOD_VERSION << std::endl;
+
+	result = mSystem->init(maxChannels, flags, externalDriverData);
+	ErrorCheck(result);
 }
 
 Mx3::~Mx3()
 {
-    delete songRef;
-    BASS_Free();
-    std::cout << "BASS Process Ended." << std::endl;
-    ErrorCheck();
-}
+	for each(FMOD::Sound* sound in mSounds)
+	{
+		result = sound->release();
+		ErrorCheck(result);
+	}
 
-void CALLBACK Mx3::loopRegionTrigger(HSYNC handle, DWORD channel, DWORD data, void *user)
-{
-    for (DWORD chan : mChannels)
-    {
-        if (!BASS_ChannelSetPosition(chan, BASS_ChannelSeconds2Bytes(chan, *static_cast<double *>(user)), BASS_POS_BYTE))
-            BASS_ChannelSetPosition(chan, 0, BASS_POS_BYTE);
-    }
+	mSounds.clear();
+
+	result = mSystem->close();
+	ErrorCheck(result);
+
+	result = mSystem->release();
+	ErrorCheck(result);
 }
 
 void Mx3::play(std::string filepath)
 {
-    if (mChannels.size() > 0)
-        stop();
+	bool isActive = false;
+	
+	if(mChannel)
+	{
+		result = mChannel->isPlaying(&isActive);
+		if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
+			ErrorCheck(result);
+		else if(isActive)
+			stop();
 
-    std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
+		result = mChannel->getPaused(&isActive);
+		if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
+			ErrorCheck(result);
+		else if(isActive)
+			stop();
+	}
 
-    if (ext.compare("multi") == 0)
-    {
-        songRef = new MultiSong(filepath);
-        songRef->setup(&mChannels, &mLength, );
+	std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
 
-        for (DWORD channel : mChannels)
-        {
-            BASS_ChannelPlay(channel, TRUE);
-            ErrorCheck("Mx3::play - line 41");
-        }
-    }
-    else
-    {
-        DWORD channel;
-        if (!(channel = BASS_StreamCreateFile(FALSE, filepath.c_str(), 0, 0, BASS_SAMPLE_LOOP)))
-        {
-            std::cout << "Cannot load file." << std::endl;
-            ErrorCheck();
-            return;
-        }
-        else
-        {
-            DWORD len = BASS_ChannelGetLength(channel, BASS_POS_BYTE);
-            double tempLength = BASS_ChannelBytes2Seconds(channel, len);
-            if (tempLength > mLength)
-                mLength = tempLength;
+	if(ext.compare("multi") == 0)
+	{
+		// Multi Song
+	}
+	else
+	{
+		FMOD::Sound *sound;
+		result = mSystem->createStream(filepath.c_str(), FMOD_2D | FMOD_ACCURATETIME, 0, &sound);
+		ErrorCheck(result);
 
-            mChannels.push_back(channel);
-            BASS_ChannelPlay(channel, TRUE);
-            ErrorCheck();
-        }
-    }
+		result = sound->getLength(&mLength, FMOD_TIMEUNIT_MS);
+		ErrorCheck(result);
+
+		result = mSystem->playSound(sound, 0, false, &mChannel);
+		ErrorCheck(result);
+		mSounds.push_back(sound);
+	}
 }
 
 bool Mx3::isPlaying()
 {
-    bool result = false;
-
-    for (DWORD channel : mChannels)
-    {
-        if (BASS_ChannelIsActive(channel) != BASS_ACTIVE_STOPPED)
-            result = result || true;
-    }
-
-    return result;
+    
 }
 
 void Mx3::pause()
 {
-    for (DWORD channel : mChannels)
-    {
-        BASS_ChannelPause(channel);
-        ErrorCheck();
-    }
+	bool paused;
+
+	result = mChannel->getPaused(&paused);
+	ErrorCheck(result);
+
+	result = mChannel->setPaused(!paused);
+	ErrorCheck(result);
 }
 
-double Mx3::getPosition()
+unsigned int Mx3::getPosition()
 {
-    if (mChannels.size() > 0)
-    {
-        double result = BASS_ChannelBytes2Seconds(mChannels[0], BASS_ChannelGetPosition(mChannels[0], BASS_POS_BYTE));
-        ErrorCheck();
-        return result;
-    }
+	unsigned int ms = 0;
+
+	result = mChannel->getPosition(&ms, FMOD_TIMEUNIT_MS);
+	ErrorCheck(result);
+
+	return ms;
 }
 
-void Mx3::changeTimePosition(int position)
+void Mx3::changeTimePosition(unsigned int position)
 {
-    for (DWORD channel : mChannels)
-    {
-        BASS_ChannelSetPosition(channel, BASS_ChannelSeconds2Bytes(channel, position), BASS_POS_BYTE);
-        ErrorCheck("Error changing position");
-    }
+	result = mChannel->setPosition(position, FMOD_TIMEUNIT_MS);
+	ErrorCheck(result);
 }
 
+/*
 void Mx3::resume()
 {
-    for (DWORD channel : mChannels)
-    {
-        BASS_ChannelPlay(channel, FALSE);
-        ErrorCheck("Error while resuming");
-    }
+    
 }
+*/
 
 void Mx3::stop()
 {
-    for (DWORD channel : mChannels)
-    {
-        BASS_StreamFree(channel);
-        ErrorCheck("Error while stopping channels");
-    }
+	result = mChannel->stop();
+	ErrorCheck(result);
 
-    mChannels.clear();
+	for each(FMOD::Sound *sound in mSounds)
+	{
+		result = sound->release();
+		ErrorCheck(result);
+	}
+
+	mSounds.clear();
+	mChannel = nullptr;
 }
 
-double Mx3::getLength()
+unsigned int Mx3::getLength()
 {
     return mLength;
 }
 
 void Mx3::setGlobalVolume(float value)
 {
-    mVolume = value;
-
-    for (DWORD channel : mChannels)
-    {
-        BASS_ChannelSetAttribute(channel, BASS_ATTRIB_VOL, mVolume);
-        ErrorCheck("Error setting volume.");
-    }
-}
-
-void Mx3::stopOne(HSTREAM handle)
-{
-    for (auto it = mChannels.begin(); it != mChannels.end(); it++)
-    {
-        if (*it == handle)
-        {
-            BASS_StreamFree(handle);
-            ErrorCheck("Error while stopping channel");
-            mChannels.erase(it);
-            return;
-        }
-    }
+	result = mChannel->setVolume(value);
+	ErrorCheck(result);
 }
 
 void Mx3::stopOne(int index)
 {
-    if (index >= 0 && mChannels.size() > index)
-    {
-        auto it = mChannels.begin();
-        it += index;
-        BASS_StreamFree(*it);
-        ErrorCheck();
-        mChannels.erase(it);
-    }
+    
 }
 
-void Mx3::ErrorCheck(std::string header)
+void Mx3::ErrorCheck(FMOD_RESULT result, std::string header)
 {
-    int code = BASS_ErrorGetCode();
-
-    if (code != BASS_OK)
-        std::cout << header << "\nError Code: " << code << std::endl;
+	if (result != FMOD_OK)
+		std::cerr << header << "\n" << FMOD_ErrorString(result) << std::endl;
 }

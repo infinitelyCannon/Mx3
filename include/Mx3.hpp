@@ -1,36 +1,41 @@
 #ifndef MX3_H
 #define MX3_H
 
-#include "bass.h"
-#include <vector>
+#include "fmod.hpp"
 #include <string>
+#include <vector>
+#include <memory>
 
-class MultiSong;
+//#include "Component.hpp"
+class Component;
 
 class Mx3
 {
 public:
-    AudioEngine(int device = -1, int frequency = 44100, uint32_t flags = 0, void *win = nullptr, void *clsid = nullptr);
-    ~AudioEngine();
+    Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData);
+    ~Mx3();
     bool isPlaying();
     void play(std::string filepath);
     void pause();
-    void resume();
-    void changeTimePosition(int position);
+    //void resume();
+    void changeTimePosition(unsigned int position);
     void setGlobalVolume(float value);
-    double getLength();
+    unsigned int getLength();
     void stop();
-    double getPosition();
+    unsigned int getPosition();
 
 private:
-    std::vector<DWORD> mChannels;
-    void ErrorCheck(std::string header = "");
-    void stopOne(HSTREAM handle);
+    void ErrorCheck(FMOD_RESULT result, std::string header = "");
+
+	FMOD::System *mSystem;
+	FMOD::Channel *mChannel;
+	FMOD_RESULT result;
+	unsigned int version;
+	std::vector<FMOD::Sound*> mSounds;
+	std::vector<std::unique_ptr<Component>> mComponents;
     void stopOne(int index);
     float mVolume = 1.0f;
-    double mLength = 0.0;
-    MultiSong *songRef;
-    void CALLBACK loopRegionTrigger(HSYNC handle, DWORD channel, DWORD data, void *user);
+    unsigned int mLength = 0;
 };
 
 #endif //MX3_H

@@ -7,10 +7,22 @@ find_package(FMOD REQUIRED)
 
 set(SOURCES src/Mx3.cpp)
 
+if(WIN32)
+	set(TEST_SOURCES "tests/common.cpp" "tests/win32/common_platform.cpp" "tests/NestedLoop.cpp")
+endif(WIN32)
+
 add_library(Mx3 SHARED ${SOURCES})
 target_include_directories(Mx3 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_features(Mx3 PUBLIC cxx_std_11)
 set_target_properties(Mx3 PROPERTIES CXX_EXTENSIONS OFF)
+
+add_executable(NestedLoopTest ${TEST_SOURCES})
+target_include_directories(NestedLoopTest PRIVATE ${FMOD_INCLUDE_DIRS})
+
+if(WIN32)
+	target_include_directories(NestedLoopTest PRIVATE "${PROJECT_SOURCE_DIR}/tests/win32")
+endif(WIN32)
+target_link_libraries(NestedLoopTest Mx3)
 
 if(DEFINED CPU)
 	if(${CPU} STREQUAL "x86")
