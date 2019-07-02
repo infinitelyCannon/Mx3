@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <thread>
+#include <mutex>
 
 //#include "Component.hpp"
 class Component;
@@ -15,6 +17,7 @@ public:
     Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData);
     ~Mx3();
     bool isPlaying();
+	bool isPaused();
     void play(std::string filepath);
     void pause();
     //void resume();
@@ -23,11 +26,16 @@ public:
     unsigned int getLength();
     void stop();
     unsigned int getPosition();
+	void update();
 
 private:
     void ErrorCheck(FMOD_RESULT result, std::string header = "");
-
+	
+	bool shouldQuit = false;
+	unsigned int test = 0;
 	FMOD::System *mSystem;
+	std::thread *mUpdate;
+	std::mutex mMutex;
 	FMOD::Channel *mChannel;
 	FMOD_RESULT result;
 	unsigned int version;

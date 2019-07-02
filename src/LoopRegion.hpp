@@ -6,7 +6,7 @@
 class LoopRegion : public Component
 {
 public:
-	LoopRegion(unsigned int loopStart, unsigned int loopEnd, FMOD::Channel *channel, FMOD_RESULT *result);
+	LoopRegion(unsigned int loopStart, unsigned int loopEnd, FMOD::Channel *channel);
 	~LoopRegion();
 
 	FMOD_RESULT entry() override;

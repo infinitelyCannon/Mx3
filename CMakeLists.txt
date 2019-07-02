@@ -5,7 +5,9 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(FMOD REQUIRED)
 
-set(SOURCES src/Mx3.cpp)
+set(SOURCES src/Mx3.cpp
+	src/LoopRegion.cpp
+)
 
 if(WIN32)
 	set(TEST_SOURCES "tests/common.cpp" "tests/win32/common_platform.cpp" "tests/NestedLoop.cpp")
