@@ -1,4 +1,5 @@
 #include "LoopRegion.hpp"
+#include <iostream>
 
 LoopRegion::LoopRegion(unsigned int loopStart, unsigned int loopEnd, FMOD::Channel *channel) :
 	mStart(loopStart),
@@ -13,18 +14,20 @@ LoopRegion::~LoopRegion()
 	
 }
 
-FMOD_RESULT LoopRegion::entry()
+void LoopRegion::entry()
 {
-	return mChannel->setLoopPoints(mStart, FMOD_TIMEUNIT_PCM, mEnd, FMOD_TIMEUNIT_PCM);
+	result = mChannel->setLoopPoints(mStart, FMOD_TIMEUNIT_PCM, mEnd, FMOD_TIMEUNIT_PCM);
+	ErrorCheck(result, "LoopRegion Line " + std::to_string(__LINE__ - 1));
 }
 
-FMOD_RESULT LoopRegion::update()
+void LoopRegion::update()
 {
 	if (!shouldChange)
-		return FMOD_OK;
+		return;
 
 	shouldChange = false;
-	return mChannel->setLoopPoints(mStart, FMOD_TIMEUNIT_PCM, mEnd, FMOD_TIMEUNIT_PCM);
+	result = mChannel->setLoopPoints(mStart, FMOD_TIMEUNIT_PCM, mEnd, FMOD_TIMEUNIT_PCM);
+	ErrorCheck(result, "LoopRegion Line " + std::to_string(__LINE__ - 1));
 }
 
 void LoopRegion::change(unsigned int start, unsigned int end)
@@ -34,7 +37,13 @@ void LoopRegion::change(unsigned int start, unsigned int end)
 	mEnd = end;
 }
 
-FMOD_RESULT LoopRegion::exit()
+void LoopRegion::ErrorCheck(FMOD_RESULT result, std::string header)
 {
-	return FMOD_OK;
+	if(result != FMOD_OK)
+		std::cerr << header << "\n" << FMOD_ErrorString(result) << std::endl;
+}
+
+void LoopRegion::exit()
+{
+	
 }

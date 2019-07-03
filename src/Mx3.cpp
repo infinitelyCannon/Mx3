@@ -6,14 +6,16 @@
 #include <fstream>
 #include <system_error>
 #include <chrono>
+#include <map>
 
 #ifdef WIN32
 #include <combaseapi.h>
 #endif // WIN32
 
-
 // Component Headers
 #include "LoopRegion.hpp"
+
+using json = nlohmann::json;
 
 Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 	mSystem(nullptr),
@@ -86,6 +88,9 @@ void Mx3::update()
 	
 	while(!shouldQuit)
 	{
+		for(int i = 0; i < mComponents.size(); i++)
+			mComponents[i]->update();
+		
 		result = mSystem->update();
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
@@ -121,7 +126,7 @@ void Mx3::play(std::string filepath)
 	if(ext.compare("multi") == 0)
 	{
 		std::ifstream file;
-		nlohmann::json doc;
+		json doc;
 
 		file.open(filepath, std::ios::in);
 
@@ -132,7 +137,39 @@ void Mx3::play(std::string filepath)
 		}
 
 		file >> doc;
-		// . . .
+		file.close();
+		
+		std::vector<std::string> files = doc["files"];
+		for each(std::string song in files)
+		{
+			FMOD::Sound *sound;
+			result = mSystem->createStream(song.c_str(), FMOD_2D | FMOD_ACCURATETIME | FMOD_LOOP_NORMAL, 0, &sound);
+			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+			result = sound->getLength(&mLength, FMOD_TIMEUNIT_MS);
+			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+			result = mSystem->playSound(sound, 0, true, &mChannel);
+			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+			mSounds.push_back(sound);
+		}
+
+		if(doc.contains("nested_loops"))
+		{
+			std::vector<std::map<std::string, unsigned int>> loops = doc["nested_loops"];
+			for each(auto loop in loops)
+			{
+				auto region = std::make_unique<LoopRegion>(loop["start"], loop["end"], mChannel);
+				mComponents.push_back(std::move(region));
+			}
+		}
+
+		for(int i = 0; i < mComponents.size(); i++)
+			mComponents[i]->entry();
+
+		result = mChannel->setPaused(false);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 	}
 	else
 	{
