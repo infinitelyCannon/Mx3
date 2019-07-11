@@ -4,7 +4,8 @@
 LoopRegion::LoopRegion(unsigned int loopStart, unsigned int loopEnd, FMOD::Channel *channel) :
 	mStart(loopStart),
 	mEnd(loopEnd),
-	mChannel(channel)
+	mChannel(channel),
+	result(FMOD_OK)
 {
 
 }

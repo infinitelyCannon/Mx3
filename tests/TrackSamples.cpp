@@ -33,17 +33,18 @@ int FMOD_Main(int argc, char **argv)
 		isPlaying = audio->isPlaying();
 		isPaused = audio->isPaused();
 
-		if(isPaused || isPlaying)
+		if(isPlaying || isPaused)
 		{
 			ms = audio->getPosition();
 			length = audio->getLength();
 		}
 
 		Common_Draw("==================================================");
-		Common_Draw("Mx3 Audio Engine Play Sound Test");
+		Common_Draw("Mx3 Audio Engine Multi-Sample Track Test");
 		Common_Draw("==================================================");
 		Common_Draw("");
 		Common_Draw("Press %s to toggle pause.", Common_BtnStr(BTN_ACTION1));
+		Common_Draw("Press %s to toggle loop region.", Common_BtnStr(BTN_ACTION2));
 		Common_Draw("Press %s to quit.", Common_BtnStr(BTN_QUIT));
 		Common_Draw("");
 		Common_Draw("Time %02d:%02d:%02d/%02d:%02d:%02d : %s", ms / 1000 / 60, ms / 1000 % 60, ms / 10 % 100, length / 1000 / 60, length / 1000 % 60, length / 10 % 100, isPaused ? "Paused " : isPlaying ? "Playing" : "Stopped");
