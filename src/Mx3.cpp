@@ -7,6 +7,7 @@
 #include <system_error>
 #include <chrono>
 #include <map>
+#include <algorithm>
 
 #ifdef WIN32
 #include <combaseapi.h>
@@ -22,14 +23,16 @@ Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 	mChannel(nullptr),
 	result(FMOD_OK),
 	version(0),
-	mMutex()
+	mMutex(),
+	mTracks()
 {
 #ifdef WIN32
 	HRESULT r = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 	if(r != S_OK)
 		std::cerr << "Error: Failed to initialize COM" << std::endl;
 #endif // WIN32
-
+	FMOD::ChannelGroup *masterGroup;
+	
 	result = FMOD::System_Create(&mSystem);
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
@@ -40,6 +43,15 @@ Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 		std::cerr << "FMOD library version " << version << " doesn't match header version " << FMOD_VERSION << std::endl;
 
 	result = mSystem->init(maxChannels, flags, externalDriverData);
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+	result = mSystem->createChannelGroup("Timeline", &mTimeline);
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+	result = mSystem->getMasterChannelGroup(&masterGroup);
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+	result = masterGroup->addGroup(mTimeline);
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
 	try
@@ -59,13 +71,21 @@ Mx3::~Mx3()
 	shouldQuit = true;
 	mMutex.unlock();
 	
-	for each(FMOD::Sound* sound in mSounds)
+	/*for(FMOD::Sound* sound : mSounds)
 	{
 		result = sound->release();
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 	}
 
-	mSounds.clear();
+	mSounds.clear();*/
+
+	for(Track *t : mTracks)
+		t->release();
+
+	mTracks.clear();
+
+	result = mTimeline->release();
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
 	result = mSystem->close();
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
@@ -88,8 +108,11 @@ void Mx3::update()
 	
 	while(!shouldQuit)
 	{
-		for(int i = 0; i < mComponents.size(); i++)
-			mComponents[i]->update();
+		for(Component *c : mComponents)
+			c->update(mEvents);
+
+		if(!mEvents.empty())
+			mEvents.clear();
 		
 		result = mSystem->update();
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
@@ -102,23 +125,41 @@ void Mx3::update()
 #endif // WIN32
 }
 
+void Mx3::AddEvent(ComponentEvent eve)
+{
+	mEvents.push_back(eve);
+}
+
 void Mx3::play(std::string filepath)
 {
 	bool isActive = false;
 	
-	if(mChannel != nullptr)
+	if(mTimeline != nullptr)
 	{
-		result = mChannel->isPlaying(&isActive);
+		result = mTimeline->isPlaying(&isActive);
 		if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
 			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 		else if(isActive)
 			stop();
 
-		result = mChannel->getPaused(&isActive);
+		result = mTimeline->getPaused(&isActive);
 		if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
 			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 		else if(isActive)
 			stop();
+	}
+	else
+	{
+		FMOD::ChannelGroup *masterGroup;
+
+		result = mSystem->createChannelGroup("Timeline", &mTimeline);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+		result = mSystem->getMasterChannelGroup(&masterGroup);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+		result = masterGroup->addGroup(mTimeline);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 	}
 
 	std::string ext = filepath.substr(filepath.find_last_of('.') + 1);
@@ -139,57 +180,92 @@ void Mx3::play(std::string filepath)
 		file >> doc;
 		file.close();
 		
-		std::vector<std::string> files = doc["files"];
-		for each(std::string song in files)
+		int numTracks = doc["tracks"].size();
+		std::vector<std::string> files;
+		Track *track;
+
+		result = mTimeline->setPaused(true);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+		for(int i = 0; i < numTracks; i++)
 		{
-			FMOD::Sound *sound;
-			result = mSystem->createStream(song.c_str(), FMOD_2D | FMOD_ACCURATETIME | FMOD_LOOP_NORMAL, 0, &sound);
+			FMOD::ChannelGroup *group;
+			std::string groupName = doc["tracks"][i]["name"].get<std::string>();
+
+			result = mSystem->createChannelGroup(groupName.c_str(), &group);
 			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
-			result = sound->getLength(&mLength, FMOD_TIMEUNIT_MS);
+			result = mTimeline->addGroup(group);
 			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
-			result = mSystem->playSound(sound, 0, true, &mChannel);
-			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+			track = new Track(groupName, group);
+			track->DeferError = SA::delegate<void(FMOD_RESULT, std::string)>::create<Mx3, &Mx3::ErrorCheck>(this);
 
-			mSounds.push_back(sound);
+			json::iterator it = doc["tracks"][i]["files"].begin();
+			json::iterator end = doc["tracks"][i]["files"].end();
+			for(; it != end; it++)
+			{
+				std::string s = *it;
+				
+				track->addSource(s, mSystem);
+			}
+
+			mTracks.push_back(track);
 		}
 
 		if(doc.contains("nested_loops"))
 		{
 			std::vector<std::map<std::string, unsigned int>> loops = doc["nested_loops"];
-			for each(auto loop in loops)
+			for(auto loop : loops)
 			{
-				auto region = std::make_unique<LoopRegion>(loop["start"], loop["end"], mChannel);
-				mComponents.push_back(std::move(region));
+				LoopRegion *region = new LoopRegion(loop["start"], loop["end"], &mTracks, 0);
+				region->setDelegate(SA::delegate<void(FMOD_RESULT, std::string)>::create<Mx3, &Mx3::ErrorCheck>(this));
+				mComponents.push_back(region);
 			}
 		}
 
-		for(int i = 0; i < mComponents.size(); i++)
-			mComponents[i]->entry();
+		for(Component *c : mComponents)
+			c->entry();
 
-		result = mChannel->setPaused(false);
+		std::sort(mTracks.begin(), mTracks.end(), [](Track *a, Track *b)
+		{
+			return (*a) > (*b);
+		});
+
+		result = mTimeline->setPaused(false);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 	}
 	else
 	{
-		FMOD::Sound *sound;
-		result = mSystem->createStream(filepath.c_str(), FMOD_2D | FMOD_ACCURATETIME, 0, &sound);
+		FMOD::ChannelGroup *group = 0;
+
+		result = mTimeline->setPaused(true);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+		
+		result = mSystem->createChannelGroup("Default", &group);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
-		result = sound->getLength(&mLength, FMOD_TIMEUNIT_MS);
+		result = mTimeline->addGroup(group);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
-		result = mSystem->playSound(sound, 0, false, &mChannel);
+		Track *track = new Track("Default", group);
+		track->DeferError = SA::delegate<void(FMOD_RESULT, std::string)>::create<Mx3, &Mx3::ErrorCheck>(this);
+		track->addSource(filepath, mSystem);
+
+		mTracks.push_back(track);
+		std::sort(mTracks.begin(), mTracks.end(), [](Track *a, Track *b) {
+			return (*a) > (*b);
+		});
+
+		result = mTimeline->setPaused(false);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-		mSounds.push_back(sound);
 	}
 }
 
 bool Mx3::isPlaying()
 {
 	bool playing = false;
-	result = mChannel->isPlaying(&playing);
+	result = mTimeline->isPlaying(&playing);
 	if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
@@ -199,7 +275,7 @@ bool Mx3::isPlaying()
 bool Mx3::isPaused()
 {
 	bool paused = false;
-	result = mChannel->getPaused(&paused);
+	result = mTimeline->getPaused(&paused);
 	if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
@@ -208,12 +284,12 @@ bool Mx3::isPaused()
 
 void Mx3::pause()
 {
-	bool paused;
+	bool paused = true;
 
-	result = mChannel->getPaused(&paused);
+	result = mTimeline->getPaused(&paused);
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
-	result = mChannel->setPaused(!paused);
+	result = mTimeline->setPaused(!paused);
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 }
 
@@ -221,8 +297,11 @@ unsigned int Mx3::getPosition()
 {
 	unsigned int ms = 0;
 
-	result = mChannel->getPosition(&ms, FMOD_TIMEUNIT_MS);
-	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+	if(!mTracks.empty())
+	{
+		result = mTracks[0]->mSources[0].channel->getPosition(&ms, FMOD_TIMEUNIT_MS);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+	}
 
 	return ms;
 }
@@ -242,22 +321,22 @@ void Mx3::resume()
 
 void Mx3::stop()
 {
-	result = mChannel->stop();
+	result = mTimeline->stop();
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
-	for each(FMOD::Sound *sound in mSounds)
-	{
-		result = sound->release();
-		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-	}
+	for(Track *t : mTracks)
+		t->release();
 
-	mSounds.clear();
-	mChannel = nullptr;
+	mTracks.clear();
+	mTimeline = nullptr;
 }
 
 unsigned int Mx3::getLength()
 {
-    return mLength;
+	if(mTracks.size() > 0)
+		return mTracks[0]->mLength;
+	else
+		return 0;
 }
 
 void Mx3::setGlobalVolume(float value)
@@ -271,8 +350,21 @@ void Mx3::stopOne(int index)
     
 }
 
+void Mx3::BindErrorCallback(SA::delegate<void(std::string)> func)
+{
+	ErrorDelegate = func;
+}
+
 void Mx3::ErrorCheck(FMOD_RESULT result, std::string header)
 {
-	if(result != FMOD_OK)
-		std::cerr << header << "\n" << FMOD_ErrorString(result) << std::endl;
+	if(ErrorDelegate.isNull())
+	{
+		if(result != FMOD_OK)
+			std::cerr << header << "\n" << FMOD_ErrorString(result) << std::endl;
+	}
+	else
+	{
+		if(result != FMOD_OK)
+			ErrorDelegate("[" + header + "]: " + FMOD_ErrorString(result));
+	}
 }

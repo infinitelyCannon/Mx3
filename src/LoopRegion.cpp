@@ -1,13 +1,11 @@
 #include "LoopRegion.hpp"
-#include <iostream>
 
-LoopRegion::LoopRegion(unsigned int loopStart, unsigned int loopEnd, FMOD::Channel *channel) :
+LoopRegion::LoopRegion(unsigned int loopStart, unsigned int loopEnd, std::vector<Track *> *tracks, int sampleRate) :
 	mStart(loopStart),
 	mEnd(loopEnd),
-	mChannel(channel),
-	result(FMOD_OK)
+	sampleRate(sampleRate)
 {
-
+	trackRef = tracks;
 }
 
 LoopRegion::~LoopRegion() 
@@ -17,18 +15,35 @@ LoopRegion::~LoopRegion()
 
 void LoopRegion::entry()
 {
-	result = mChannel->setLoopPoints(mStart, FMOD_TIMEUNIT_PCM, mEnd, FMOD_TIMEUNIT_PCM);
-	ErrorCheck(result, "LoopRegion Line " + std::to_string(__LINE__ - 1));
+	for(Track *t : *trackRef)
+	{
+		for(TrackSource ts : *(t->getSourceRef()))
+		{
+			ErrorDelegate(
+				ts.channel->setLoopPoints(mStart, FMOD_TIMEUNIT_MS, mEnd, FMOD_TIMEUNIT_MS),
+				"Channel Loop Assignment:"
+			);
+		}
+	}
 }
 
-void LoopRegion::update()
+void LoopRegion::update(std::vector<ComponentEvent> events)
 {
 	if (!shouldChange)
 		return;
 
 	shouldChange = false;
-	result = mChannel->setLoopPoints(mStart, FMOD_TIMEUNIT_PCM, mEnd, FMOD_TIMEUNIT_PCM);
-	ErrorCheck(result, "LoopRegion Line " + std::to_string(__LINE__ - 1));
+	
+	for(Track *t : *trackRef)
+	{
+		for(TrackSource ts : *(t->getSourceRef()))
+		{
+			ErrorDelegate(
+				ts.channel->setLoopPoints(mStart, FMOD_TIMEUNIT_MS, mEnd, FMOD_TIMEUNIT_MS),
+				"Channel Loop Assignment:"
+			);
+		}
+	}
 }
 
 void LoopRegion::change(unsigned int start, unsigned int end)
@@ -36,12 +51,6 @@ void LoopRegion::change(unsigned int start, unsigned int end)
 	shouldChange = true;
 	mStart = start;
 	mEnd = end;
-}
-
-void LoopRegion::ErrorCheck(FMOD_RESULT result, std::string header)
-{
-	if(result != FMOD_OK)
-		std::cerr << header << "\n" << FMOD_ErrorString(result) << std::endl;
 }
 
 void LoopRegion::exit()

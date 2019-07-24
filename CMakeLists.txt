@@ -7,11 +7,12 @@ find_package(FMOD REQUIRED)
 
 set(SOURCES src/Mx3.cpp
 	src/LoopRegion.cpp
+	src/Track.cpp
+	src/Parameter.cpp
 )
 
 if(WIN32)
-	set(TEST1_SOURCES "tests/common.cpp" "tests/win32/common_platform.cpp" "tests/NestedLoop.cpp")
-	set(TEST2_SOURCES "tests/common.cpp" "tests/win32/common_platform.cpp" "tests/TrackSamples.cpp")
+	set(TEST_SOURCES "tests/common.cpp" "tests/win32/common_platform.cpp" "tests/ConsoleTest.cpp")
 endif(WIN32)
 
 add_library(Mx3 SHARED ${SOURCES})
@@ -19,18 +20,14 @@ target_include_directories(Mx3 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_features(Mx3 PUBLIC cxx_std_11)
 set_target_properties(Mx3 PROPERTIES CXX_EXTENSIONS OFF)
 
-add_executable(NestedLoopTest ${TEST1_SOURCES})
-target_include_directories(NestedLoopTest PRIVATE ${FMOD_INCLUDE_DIRS})
-
-add_executable(TrackSamples ${TEST2_SOURCES})
-target_include_directories(TrackSamples PRIVATE ${FMOD_INCLUDE_DIRS})
+add_executable(ConsoleTest ${TEST_SOURCES})
+target_include_directories(ConsoleTest PRIVATE ${FMOD_INCLUDE_DIRS})
 
 if(WIN32)
-	target_include_directories(NestedLoopTest PRIVATE "${PROJECT_SOURCE_DIR}/tests/win32")
-	target_include_directories(TrackSamples PRIVATE "${PROJECT_SOURCE_DIR}/tests/win32")
+	target_include_directories(ConsoleTest PRIVATE "${PROJECT_SOURCE_DIR}/tests/win32")
 endif(WIN32)
-target_link_libraries(NestedLoopTest Mx3)
-target_link_libraries(TrackSamples Mx3)
+
+target_link_libraries(ConsoleTest Mx3)
 
 if(DEFINED CPU)
 	if(${CPU} STREQUAL "x86")
