@@ -1,6 +1,5 @@
 #include "Mx3.hpp"
 #include "fmod_errors.h"
-#include "nlohmann/json.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -8,6 +7,7 @@
 #include <chrono>
 #include <map>
 #include <algorithm>
+#include <cmath>
 
 #ifdef WIN32
 #include <combaseapi.h>
@@ -15,6 +15,7 @@
 
 // Component Headers
 #include "LoopRegion.hpp"
+#include "Parameter.hpp"
 
 using json = nlohmann::json;
 
@@ -22,7 +23,6 @@ Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 	mSystem(nullptr),
 	mChannel(nullptr),
 	result(FMOD_OK),
-	version(0),
 	mMutex(),
 	mTracks()
 {
@@ -32,6 +32,7 @@ Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 		std::cerr << "Error: Failed to initialize COM" << std::endl;
 #endif // WIN32
 	FMOD::ChannelGroup *masterGroup;
+	unsigned int version = 0;
 	
 	result = FMOD::System_Create(&mSystem);
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
@@ -98,31 +99,15 @@ Mx3::~Mx3()
 #endif // WIN32
 }
 
-void Mx3::update()
+float Mx3::A1(float x1, float x2, float x3, float y1, float y2, float y3)
 {
-#ifdef WIN32
-	HRESULT r = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-	if(r != S_OK)
-		std::cerr << "Error: Failed to initialize COM" << std::endl;
-#endif // WIN32
-	
-	while(!shouldQuit)
-	{
-		for(Component *c : mComponents)
-			c->update(mEvents);
+	return ((x1 * (y2 - y3)) + (x2 * (y3 - y1)) + (x3 * (y1 - y2))) / 
+		((2 * std::pow(x1 - x2, 2.0f)) * (x1 - x3) * (x2 - x3));
+}
 
-		if(!mEvents.empty())
-			mEvents.clear();
-		
-		result = mSystem->update();
-		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-
-		std::this_thread::sleep_for(std::chrono::milliseconds(20));
-	}
-
-#ifdef WIN32
-	CoUninitialize();
-#endif // WIN32
+float Mx3::A2(float x1, float x2, float x3, float a1)
+{
+	return (x2 - x1) / (x2 - x3) * a1;
 }
 
 void Mx3::AddEvent(ComponentEvent eve)
@@ -130,10 +115,152 @@ void Mx3::AddEvent(ComponentEvent eve)
 	mEvents.push_back(eve);
 }
 
+float Mx3::B1(float x1, float x2, float x3, float y1, float y2, float y3)
+{
+	return (std::pow(x1, 2.0f) * (y3 - y2) - x1 * (x2 * (-3.0f * y1 + y2 + 2 * y3) + 3 * x3 * (y1 - y2)) + std::pow(x2, 2.0f) * (y3 - y1) + x2 * x3 * (y2 - y1) + std::pow(2.0f * x3, 2.0f) * (y1 - y2))
+		/ (2.0f * (x1 - x2) * (x1 - x3) * (x2 - x3));
+}
+
+float Mx3::B2(float x1, float x2, float x3, float y1, float y2, float y3)
+{
+	return (std::pow(2.0f * x1, 2.0f) * (y2 - y3) + x2 * (x1 * (y3 - y2) + x3 * (2.0f * y1 + y2 - 3.0f * y3)) + 3.0f * x1 * x3 * (y3 - y2) + std::pow(x2, 2.0f) * (y3 - y1) + std::pow(x3, 2.0f) * (y2 - y1))
+		/ (2.0f * (x1 - x2) * (x1 - x3) * (x2 - x3));
+}
+
+void Mx3::BindErrorCallback(SA::delegate<void(std::string)> func)
+{
+	ErrorDelegate = func;
+}
+
+void Mx3::changeTimePosition(unsigned int position)
+{
+	result = mChannel->setPosition(position, FMOD_TIMEUNIT_MS);
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+}
+
+float Mx3::curveFunction(float x, Point start, Point mid, Point end)
+{
+	if(x >= start.x && x <= mid.x)
+	{
+		float a1 = A1(start.x, mid.x, end.x, start.y, mid.y, end.y);
+		float b1 = B1(start.x, mid.x, end.x, start.y, mid.y, end.y);
+
+		return (a1 * std::pow(x - start.x, 3.0f)) + (b1 * (x - start.x)) + start.y;
+	}
+	else if(x >= mid.x && x <= end.x)
+	{
+		float a1 = A1(start.x, mid.x, end.x, start.y, mid.y, end.y);
+		float a2 = A2(start.x, mid.x, end.x, a1);
+		float b2 = B2(start.x, mid.x, end.x, start.y, mid.y, end.y);
+
+		return (a2 * std::pow(x - end.x, 3.0f)) + (b2 * (x - end.x)) + end.y;
+	}
+}
+
+void Mx3::ErrorCheck(FMOD_RESULT result, std::string header)
+{
+	if(ErrorDelegate.isNull())
+	{
+		if(result != FMOD_OK)
+			std::cerr << header << "\n" << FMOD_ErrorString(result) << std::endl;
+	}
+	else
+	{
+		if(result != FMOD_OK)
+			ErrorDelegate("[" + header + "]: " + FMOD_ErrorString(result));
+	}
+}
+
+unsigned int Mx3::getLength()
+{
+	if(mTracks.size() > 0)
+		return mTracks[0]->mLength;
+	else
+		return 0;
+}
+
+unsigned int Mx3::getPosition()
+{
+	unsigned int ms = 0;
+
+	if(!mTracks.empty())
+	{
+		result = mTracks[0]->mSources[0].channel->getPosition(&ms, FMOD_TIMEUNIT_MS);
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+	}
+
+	return ms;
+}
+
+bool Mx3::isPaused()
+{
+	bool paused = false;
+	result = mTimeline->getPaused(&paused);
+	if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+	return paused;
+}
+
+bool Mx3::isPlaying()
+{
+	bool playing = false;
+	result = mTimeline->isPlaying(&playing);
+	if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+	return playing;
+}
+
+void Mx3::parseNestedLoops(json &jdoc)
+{
+	std::vector<std::map<std::string, unsigned int>> loops = jdoc["nested_loops"];
+	for(auto loop : loops)
+	{
+		LoopRegion *region = new LoopRegion(loop["start"], loop["end"], &mTracks, 0);
+		region->setDelegate(SA::delegate<void(FMOD_RESULT, std::string)>::create<Mx3, &Mx3::ErrorCheck>(this));
+		mComponents.push_back(region);
+	}
+}
+
+void Mx3::parseParameters(json &jdoc)
+{
+	json::iterator it = jdoc["tracks"].begin();
+	json::iterator end = jdoc["tracks"].end();
+	int itCount = 0;
+
+	for(; it != end; it++)
+	{
+		if(it->contains("params"))
+		{
+			json::iterator par = (*it)["params"].begin();
+			json::iterator parEnd = (*it)["params"].end();
+			for(; par != parEnd; par++)
+			{
+				Parameter *param = new Parameter(mTracks[itCount], (*par)["name"], (*par)["type"]);
+				param->setDelegate(SA::delegate<void(FMOD_RESULT, std::string)>::create<Mx3, &Mx3::ErrorCheck>(this));
+				mComponents.push_back(param);
+			}
+		}
+		itCount++;
+	}
+}
+
+void Mx3::pause()
+{
+	bool paused = true;
+
+	result = mTimeline->getPaused(&paused);
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+	result = mTimeline->setPaused(!paused);
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+}
+
 void Mx3::play(std::string filepath)
 {
 	bool isActive = false;
-	
+
 	if(mTimeline != nullptr)
 	{
 		result = mTimeline->isPlaying(&isActive);
@@ -179,9 +306,8 @@ void Mx3::play(std::string filepath)
 
 		file >> doc;
 		file.close();
-		
+
 		int numTracks = doc["tracks"].size();
-		std::vector<std::string> files;
 		Track *track;
 
 		result = mTimeline->setPaused(true);
@@ -206,7 +332,7 @@ void Mx3::play(std::string filepath)
 			for(; it != end; it++)
 			{
 				std::string s = *it;
-				
+
 				track->addSource(s, mSystem);
 			}
 
@@ -214,15 +340,10 @@ void Mx3::play(std::string filepath)
 		}
 
 		if(doc.contains("nested_loops"))
-		{
-			std::vector<std::map<std::string, unsigned int>> loops = doc["nested_loops"];
-			for(auto loop : loops)
-			{
-				LoopRegion *region = new LoopRegion(loop["start"], loop["end"], &mTracks, 0);
-				region->setDelegate(SA::delegate<void(FMOD_RESULT, std::string)>::create<Mx3, &Mx3::ErrorCheck>(this));
-				mComponents.push_back(region);
-			}
-		}
+			parseNestedLoops(doc);
+
+		if(doc.contains("parameters"))
+			parseParameters(doc);
 
 		for(Component *c : mComponents)
 			c->entry();
@@ -241,7 +362,7 @@ void Mx3::play(std::string filepath)
 
 		result = mTimeline->setPaused(true);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-		
+
 		result = mSystem->createChannelGroup("Default", &group);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 
@@ -253,71 +374,18 @@ void Mx3::play(std::string filepath)
 		track->addSource(filepath, mSystem);
 
 		mTracks.push_back(track);
-		std::sort(mTracks.begin(), mTracks.end(), [](Track *a, Track *b) {
-			return (*a) > (*b);
-		});
+		//Don't need to sort a size (1) vector here.
 
 		result = mTimeline->setPaused(false);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 	}
 }
 
-bool Mx3::isPlaying()
+void Mx3::setGlobalVolume(float value)
 {
-	bool playing = false;
-	result = mTimeline->isPlaying(&playing);
-	if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
-		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-
-	return playing;
-}
-
-bool Mx3::isPaused()
-{
-	bool paused = false;
-	result = mTimeline->getPaused(&paused);
-	if((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE) && (result != FMOD_ERR_CHANNEL_STOLEN))
-		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-
-	return paused;
-}
-
-void Mx3::pause()
-{
-	bool paused = true;
-
-	result = mTimeline->getPaused(&paused);
-	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-
-	result = mTimeline->setPaused(!paused);
+	result = mChannel->setVolume(value);
 	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 }
-
-unsigned int Mx3::getPosition()
-{
-	unsigned int ms = 0;
-
-	if(!mTracks.empty())
-	{
-		result = mTracks[0]->mSources[0].channel->getPosition(&ms, FMOD_TIMEUNIT_MS);
-		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-	}
-
-	return ms;
-}
-
-void Mx3::changeTimePosition(unsigned int position)
-{
-	result = mChannel->setPosition(position, FMOD_TIMEUNIT_MS);
-	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-}
-
-/*
-void Mx3::resume()
-{
-    
-}
-*/
 
 void Mx3::stop()
 {
@@ -331,40 +399,34 @@ void Mx3::stop()
 	mTimeline = nullptr;
 }
 
-unsigned int Mx3::getLength()
-{
-	if(mTracks.size() > 0)
-		return mTracks[0]->mLength;
-	else
-		return 0;
-}
-
-void Mx3::setGlobalVolume(float value)
-{
-	result = mChannel->setVolume(value);
-	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
-}
-
 void Mx3::stopOne(int index)
 {
     
 }
 
-void Mx3::BindErrorCallback(SA::delegate<void(std::string)> func)
+void Mx3::update()
 {
-	ErrorDelegate = func;
-}
+#ifdef WIN32
+	HRESULT r = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+	if(r != S_OK)
+		std::cerr << "Error: Failed to initialize COM" << std::endl;
+#endif // WIN32
 
-void Mx3::ErrorCheck(FMOD_RESULT result, std::string header)
-{
-	if(ErrorDelegate.isNull())
+	while(!shouldQuit)
 	{
-		if(result != FMOD_OK)
-			std::cerr << header << "\n" << FMOD_ErrorString(result) << std::endl;
+		for(Component *c : mComponents)
+			c->update(mEvents);
+
+		if(!mEvents.empty())
+			mEvents.clear();
+
+		result = mSystem->update();
+		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+
+		std::this_thread::sleep_for(std::chrono::milliseconds(20));
 	}
-	else
-	{
-		if(result != FMOD_OK)
-			ErrorDelegate("[" + header + "]: " + FMOD_ErrorString(result));
-	}
+
+#ifdef WIN32
+	CoUninitialize();
+#endif // WIN32
 }

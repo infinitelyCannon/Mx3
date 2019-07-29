@@ -5,6 +5,9 @@
 #include "fmod_errors.h"
 #include "Delegate.h"
 
+#include <vector>
+#include <string>
+
 struct ComponentEvent
 {
 	int Start;

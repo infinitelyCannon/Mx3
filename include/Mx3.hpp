@@ -10,6 +10,13 @@
 #include "Delegate.h"
 #include "Track.hpp"
 #include "Component.hpp"
+#include "nlohmann/json.hpp"
+
+struct Point
+{
+	float x;
+	float y;
+};
 
 class Mx3
 {
@@ -20,7 +27,6 @@ public:
 	bool isPaused();
 	void play(std::string filepath);
 	void pause();
-	//void resume();
 	void changeTimePosition(unsigned int position);
 	void setGlobalVolume(float value);
 	unsigned int getLength();
@@ -32,6 +38,13 @@ public:
 
 private:
 	void ErrorCheck(FMOD_RESULT result, std::string header = "");
+	void parseNestedLoops(nlohmann::json &jdoc);
+	void parseParameters(nlohmann::json &jdoc);
+	static float curveFunction(float x, Point start, Point mid, Point end);
+	static float A1(float x1, float x2, float x3, float y1, float y2, float y3);
+	static float A2(float x1, float x2, float x3, float a1);
+	static float B1(float x1, float x2, float x3, float y1, float y2, float y3);
+	static float B2(float x1, float x2, float x3, float y1, float y2, float y3);
 
 	SA::delegate<void(std::string)> ErrorDelegate;
 	bool shouldQuit = false;
@@ -42,7 +55,6 @@ private:
 	FMOD::ChannelGroup *mTimeline = nullptr;
 	FMOD::Channel *mChannel;
 	FMOD_RESULT result;
-	unsigned int version;
 	//std::vector<FMOD::Sound *> mSounds;
 	std::vector<Component *> mComponents;
 	std::vector<Track *> mTracks;
@@ -51,40 +63,5 @@ private:
 	float mVolume = 1.0f;
 	unsigned int mLength = 0;
 };
-
-/*namespace Mx3
-{
-	class Component
-	{
-	public:
-		virtual void update() = 0;
-		virtual void entry() = 0;
-		virtual void exit() = 0;
-	};
-
-	struct TrackSource
-	{
-		FMOD::Channel *channel = nullptr;
-		FMOD::Sound *sound = nullptr;
-	};
-
-	class Track
-	{
-	public:
-		Track(FMOD::Sound *sound, FMOD::Channel *channel, Mx3::System *system);
-		~Track();
-
-		void release();
-		friend class Mx3::System;
-
-	private:
-		FMOD::ChannelGroup *mGroup;
-		std::vector<TrackSource> mSources;
-		Mx3::System *sysRef;
-		SA::delegate<void(FMOD_RESULT, std::string)> ErrorDelegate;
-	};
-
-	
-}*/
 
 #endif //MX3_H

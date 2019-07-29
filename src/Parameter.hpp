@@ -6,10 +6,15 @@
 #include "Component.hpp"
 #include "Track.hpp"
 
+enum ParameterType
+{
+	VOLUME
+};
+
 class Parameter : public Component
 {
 public:
-	Parameter(Track *target, std::string name);
+	Parameter(Track *target, std::string name, std::string type);
 	~Parameter();
 
 	void entry() override;
@@ -21,6 +26,7 @@ public:
 private:
 	Track *mTrack;
 	std::string mName;
+	std::string mType;
 	FMOD::ChannelGroup *mGroup;
 	float value;
 };

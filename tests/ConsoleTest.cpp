@@ -33,6 +33,7 @@ int FMOD_Main(int argc, char **argv)
 	bool isPaused = false;
 	unsigned int ms = 0;
 	unsigned int length = 0;
+	float trackVol = 1.0f;
 	errorStrings.clear();
 
 	Common_Init(&extradriverdata);
@@ -51,7 +52,24 @@ int FMOD_Main(int argc, char **argv)
 
 		if(Common_BtnPress(BTN_ACTION2))
 		{
-			
+			ComponentEvent comp;
+			trackVol = Common_Clamp(0.0f, trackVol - 0.1f, 1.0f);
+			comp.Level = trackVol;
+			comp.type = "VOLUME";
+			comp.name = "Vocals";
+
+			audio->AddEvent(comp);
+		}
+
+		if(Common_BtnPress(BTN_ACTION3))
+		{
+			ComponentEvent comp;
+			trackVol = Common_Clamp(0.0f, trackVol + 0.1f, 1.0f);
+			comp.Level = trackVol;
+			comp.type = "VOLUME";
+			comp.name = "Vocals";
+
+			audio->AddEvent(comp);
 		}
 
 		isPlaying = audio->isPlaying();
@@ -68,6 +86,8 @@ int FMOD_Main(int argc, char **argv)
 		Common_Draw("==================================================");
 		Common_Draw("");
 		Common_Draw("Press %s to toggle pause.", Common_BtnStr(BTN_ACTION1));
+		Common_Draw("Press %s to lower Vocal param.", Common_BtnStr(BTN_ACTION2));
+		Common_Draw("Press %s to raise Vocal param.", Common_BtnStr(BTN_ACTION3));
 		Common_Draw("Press %s to quit.", Common_BtnStr(BTN_QUIT));
 		Common_Draw("");
 		Common_Draw("Time %02d:%02d:%02d/%02d:%02d:%02d : %s", ms / 1000 / 60, ms / 1000 % 60, ms / 10 % 100, length / 1000 / 60, length / 1000 % 60, length / 10 % 100, isPaused ? "Paused " : isPlaying ? "Playing" : "Stopped");

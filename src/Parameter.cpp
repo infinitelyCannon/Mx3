@@ -1,8 +1,9 @@
 #include "Parameter.hpp"
 
-Parameter::Parameter(Track *target, std::string name) :
+Parameter::Parameter(Track *target, std::string name, std::string type) :
 	mTrack(target),
-	mName(name)
+	mName(name),
+	mType(type)
 {
 
 }
@@ -23,7 +24,7 @@ void Parameter::update(std::vector<ComponentEvent> events)
 {
 	for(ComponentEvent e : events)
 	{
-		if(e.type.compare("ParameterVolume") == 0 && e.name.compare(mName) == 0)
+		if(mType.compare("VOLUME") == 0 && e.name.compare(mName) == 0)
 		{
 			ErrorDelegate(mGroup->setVolume(e.Level), "Param: Change Volume.");
 		}
