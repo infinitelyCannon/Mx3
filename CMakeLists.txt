@@ -5,6 +5,8 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(FMOD REQUIRED)
 
+enable_testing()
+
 set(SOURCES src/Mx3.cpp
 	src/LoopRegion.cpp
 	src/Track.cpp
@@ -22,6 +24,11 @@ set_target_properties(Mx3 PROPERTIES CXX_EXTENSIONS OFF)
 
 add_executable(ConsoleTest ${TEST_SOURCES})
 target_include_directories(ConsoleTest PRIVATE ${FMOD_INCLUDE_DIRS})
+
+#CTest Modules
+add_executable(FunctionTest "${CMAKE_CURRENT_SOURCE_DIR}/tests/FunctionTest.cpp")
+target_link_libraries(FunctionTest Mx3)
+add_test(NAME FunctionTest COMMAND FunctionTest WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
 
 if(WIN32)
 	target_include_directories(ConsoleTest PRIVATE "${PROJECT_SOURCE_DIR}/tests/win32")
