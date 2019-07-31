@@ -102,7 +102,7 @@ Mx3::~Mx3()
 float Mx3::A1(float x1, float x2, float x3, float y1, float y2, float y3)
 {
 	return ((x1 * (y2 - y3)) + (x2 * (y3 - y1)) + (x3 * (y1 - y2))) / 
-		((2 * std::pow(x1 - x2, 2.0f)) * (x1 - x3) * (x2 - x3));
+		((2.0f * std::pow(x1 - x2, 2.0f)) * (x1 - x3) * (x2 - x3));
 }
 
 float Mx3::A2(float x1, float x2, float x3, float a1)
@@ -117,13 +117,13 @@ void Mx3::AddEvent(ComponentEvent eve)
 
 float Mx3::B1(float x1, float x2, float x3, float y1, float y2, float y3)
 {
-	return (std::pow(x1, 2.0f) * (y3 - y2) - x1 * (x2 * (-3.0f * y1 + y2 + 2 * y3) + 3 * x3 * (y1 - y2)) + std::pow(x2, 2.0f) * (y3 - y1) + x2 * x3 * (y2 - y1) + std::pow(2.0f * x3, 2.0f) * (y1 - y2))
+	return (std::pow(x1, 2.0f) * (y3 - y2) - x1 * (x2 * (-3.0f * y1 + y2 + 2.0f * y3) + 3.0f * x3 * (y1 - y2)) + std::pow(x2, 2.0f) * (y3 - y1) + x2 *x3 * (y2 - y1) + 2.0f * std::pow(x3, 2.0f) * (y1 - y2))
 		/ (2.0f * (x1 - x2) * (x1 - x3) * (x2 - x3));
 }
 
 float Mx3::B2(float x1, float x2, float x3, float y1, float y2, float y3)
 {
-	return (std::pow(2.0f * x1, 2.0f) * (y2 - y3) + x2 * (x1 * (y3 - y2) + x3 * (2.0f * y1 + y2 - 3.0f * y3)) + 3.0f * x1 * x3 * (y3 - y2) + std::pow(x2, 2.0f) * (y3 - y1) + std::pow(x3, 2.0f) * (y2 - y1))
+	return (2.0f * std::pow(x1, 2.0f) * (y2 - y3) + x2 * (x1 * (y3 - y2) + x3 * (2.0f * y1 + y2 - 3.0f * y3)) + 3.0f * x1 * x3 * (y3 - y2) + std::pow(x2, 2.0f) * (y3 - y1) + std::pow(x3, 2.0f) * (y2 - y1))
 		/ (2.0f * (x1 - x2) * (x1 - x3) * (x2 - x3));
 }
 

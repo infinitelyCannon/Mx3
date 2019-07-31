@@ -35,18 +35,16 @@ public:
 	void update();
 	void BindErrorCallback(SA::delegate<void(std::string)> func);
 	void AddEvent(ComponentEvent eve);
-	static float curveFunction(float x, Point start, Point mid, Point end);
-	static float A1(float x1, float x2, float x3, float y1, float y2, float y3);
-	static float A2(float x1, float x2, float x3, float a1);
-	static float B1(float x1, float x2, float x3, float y1, float y2, float y3);
-	static float B2(float x1, float x2, float x3, float y1, float y2, float y3);
-
 
 private:
 	void ErrorCheck(FMOD_RESULT result, std::string header = "");
 	void parseNestedLoops(nlohmann::json &jdoc);
 	void parseParameters(nlohmann::json &jdoc);
-	
+	static float curveFunction(float x, Point start, Point mid, Point end);
+	static float A1(float x1, float x2, float x3, float y1, float y2, float y3);
+	static float A2(float x1, float x2, float x3, float a1);
+	static float B1(float x1, float x2, float x3, float y1, float y2, float y3);
+	static float B2(float x1, float x2, float x3, float y1, float y2, float y3);
 
 	SA::delegate<void(std::string)> ErrorDelegate;
 	bool shouldQuit = false;
