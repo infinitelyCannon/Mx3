@@ -27,21 +27,33 @@ void LoopRegion::entry()
 	}
 }
 
+std::string LoopRegion::getEventType() const
+{
+	return eventType;
+}
+
 void LoopRegion::update(std::vector<ComponentEvent> events)
 {
-	if (!shouldChange)
-		return;
-
-	shouldChange = false;
-	
-	for(Track *t : *trackRef)
+	for(ComponentEvent e : events)
 	{
-		for(TrackSource ts : *(t->getSourceRef()))
+		if(e.componentType.compare(eventType))
 		{
-			ErrorDelegate(
-				ts.channel->setLoopPoints(mStart, FMOD_TIMEUNIT_MS, mEnd, FMOD_TIMEUNIT_MS),
-				"Channel Loop Assignment:"
-			);
+			LoopRegionEvent &eve = static_cast<LoopRegionEvent &>(e);
+			if(eve.prevStart == mStart && eve.prevEnd == mEnd)
+			{
+				mStart = eve.start;
+				mEnd = eve.end;
+				for(Track *t : *trackRef)
+				{
+					for(TrackSource ts : *(t->getSourceRef()))
+					{
+						ErrorDelegate(
+							ts.channel->setLoopPoints(mStart, FMOD_TIMEUNIT_MS, mEnd, FMOD_TIMEUNIT_MS),
+							"Channel Loop Assignment:"
+						);
+					}
+				}
+			}
 		}
 	}
 }

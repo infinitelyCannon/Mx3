@@ -10,11 +10,7 @@
 
 struct ComponentEvent
 {
-	int Start;
-	int End;
-	float Level;
-	std::string type;
-	std::string name;
+	std::string componentType;
 };
 
 class Component
@@ -23,6 +19,7 @@ public:
 	virtual void update(std::vector<ComponentEvent> events) = 0;
 	virtual void entry() = 0;
 	virtual void exit() = 0;
+	virtual std::string getEventType() const = 0;
 	void setDelegate(SA::delegate<void(FMOD_RESULT, std::string)> func)
 	{
 		ErrorDelegate = func;

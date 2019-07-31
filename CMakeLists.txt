@@ -15,6 +15,7 @@ set(SOURCES src/Mx3.cpp
 
 if(WIN32)
 	set(TEST_SOURCES "tests/common.cpp" "tests/win32/common_platform.cpp" "tests/ConsoleTest.cpp")
+	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif(WIN32)
 
 add_library(Mx3 SHARED ${SOURCES})

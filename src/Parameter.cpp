@@ -1,6 +1,6 @@
 #include "Parameter.hpp"
 
-Parameter::Parameter(Track *target, std::string name, std::string type) :
+Parameter::Parameter(Track *target, std::string name, ParameterType type) :
 	mTrack(target),
 	mName(name),
 	mType(type)
@@ -20,13 +20,23 @@ void Parameter::entry()
 	ErrorDelegate(mGroup->getVolume(&value), "Parameter.cpp:" + std::to_string(__LINE__ - 1));
 }
 
+std::string Parameter::getEventType() const
+{
+	return eventType;
+}
+
 void Parameter::update(std::vector<ComponentEvent> events)
 {
 	for(ComponentEvent e : events)
 	{
-		if(mType.compare("VOLUME") == 0 && e.name.compare(mName) == 0)
+		if(e.componentType.compare(eventType))
 		{
-			ErrorDelegate(mGroup->setVolume(e.Level), "Param: Change Volume.");
+			ParameterEvent &eve = static_cast<ParameterEvent&>(e);
+
+			if(eve.type == mType && eve.name.compare(mName) == 0)
+			{
+				ErrorDelegate(mGroup->setVolume(eve.value), "Param: Volume Change");
+			}
 		}
 	}
 }

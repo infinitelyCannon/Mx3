@@ -11,24 +11,33 @@ enum ParameterType
 	VOLUME
 };
 
+struct ParameterEvent : ComponentEvent
+{
+	float value;
+	ParameterType type;
+	std::string name;
+};
+
 class Parameter : public Component
 {
 public:
-	Parameter(Track *target, std::string name, std::string type);
+	Parameter(Track *target, std::string name, ParameterType type);
 	~Parameter();
 
 	void entry() override;
 	void update(std::vector<ComponentEvent> events) override;
 	void exit() override;
+	std::string getEventType() const override;
 
 	void change(float val);
 
 private:
 	Track *mTrack;
+	const std::string eventType = "PARAMETER";
 	std::string mName;
-	std::string mType;
-	FMOD::ChannelGroup *mGroup;
-	float value;
+	ParameterType mType;
+	FMOD::ChannelGroup *mGroup = 0;
+	float value = 0;
 };
 
 #endif // !MX3_PARAMETER_H
