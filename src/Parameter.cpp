@@ -20,22 +20,16 @@ void Parameter::entry()
 	ErrorDelegate(mGroup->getVolume(&value), "Parameter.cpp:" + std::to_string(__LINE__ - 1));
 }
 
-std::string Parameter::getEventType() const
-{
-	return eventType;
-}
-
 void Parameter::update(std::vector<ComponentEvent> events)
 {
 	for(ComponentEvent e : events)
 	{
-		if(e.componentType.compare(eventType))
+		if(e.type.compare(eventType()) == 0)
 		{
-			ParameterEvent &eve = static_cast<ParameterEvent&>(e);
-
-			if(eve.type == mType && eve.name.compare(mName) == 0)
+			float *value = static_cast<float *>(e.data1);
+			if(e.target == mType && e.name.compare(mName) == 0)
 			{
-				ErrorDelegate(mGroup->setVolume(eve.value), "Param: Volume Change");
+				ErrorDelegate(mGroup->setVolume(*value), "Param: Volume Change");
 			}
 		}
 	}

@@ -6,18 +6,6 @@
 #include "Component.hpp"
 #include "Track.hpp"
 
-enum ParameterType
-{
-	VOLUME
-};
-
-struct ParameterEvent : ComponentEvent
-{
-	float value;
-	ParameterType type;
-	std::string name;
-};
-
 class Parameter : public Component
 {
 public:
@@ -27,13 +15,15 @@ public:
 	void entry() override;
 	void update(std::vector<ComponentEvent> events) override;
 	void exit() override;
-	std::string getEventType() const override;
+	static std::string eventType()
+	{
+		return "PARAMETER";
+	}
 
 	void change(float val);
 
 private:
 	Track *mTrack;
-	const std::string eventType = "PARAMETER";
 	std::string mName;
 	ParameterType mType;
 	FMOD::ChannelGroup *mGroup = 0;

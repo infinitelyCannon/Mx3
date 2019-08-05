@@ -27,22 +27,23 @@ void LoopRegion::entry()
 	}
 }
 
-std::string LoopRegion::getEventType() const
-{
-	return eventType;
-}
-
 void LoopRegion::update(std::vector<ComponentEvent> events)
 {
 	for(ComponentEvent e : events)
 	{
-		if(e.componentType.compare(eventType))
+		if(e.type.compare(LoopRegion::eventType()))
 		{
-			LoopRegionEvent &eve = static_cast<LoopRegionEvent &>(e);
-			if(eve.prevStart == mStart && eve.prevEnd == mEnd)
+			unsigned int *prevStart, *prevEnd, *start, *end;
+
+			prevStart = static_cast<unsigned int *>(e.data1);
+			prevEnd = static_cast<unsigned int *>(e.data2);
+			start = static_cast<unsigned int *>(e.data3);
+			end = static_cast<unsigned int *>(e.data4);
+
+			if(*prevStart == mStart && *prevEnd == mEnd)
 			{
-				mStart = eve.start;
-				mEnd = eve.end;
+				mStart = *start;
+				mEnd = *end;
 				for(Track *t : *trackRef)
 				{
 					for(TrackSource ts : *(t->getSourceRef()))

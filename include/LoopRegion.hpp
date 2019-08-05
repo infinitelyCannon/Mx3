@@ -23,14 +23,16 @@ public:
 	void entry() override;
 	void update(std::vector<ComponentEvent> events) override;
 	void exit() override;
-	std::string getEventType() const override;
+	static std::string eventType()
+	{
+		return "LOOP_REGION";
+	}
 
 	void change(unsigned int start, unsigned int end);
 
 private:
 	int sampleRate = 0;
 	std::vector<Track *> *trackRef;
-	const std::string eventType = "LOOP_REGION";
 	unsigned int mStart;
 	unsigned int mEnd;
 	bool shouldChange = false;

@@ -8,9 +8,20 @@
 #include <vector>
 #include <string>
 
+enum ParameterType
+{
+	VOLUME
+};
+
 struct ComponentEvent
 {
-	std::string componentType;
+	std::string name;
+	ParameterType target;
+	std::string type;
+	void *data1;
+	void *data2;
+	void *data3;
+	void *data4;
 };
 
 class Component
@@ -19,7 +30,6 @@ public:
 	virtual void update(std::vector<ComponentEvent> events) = 0;
 	virtual void entry() = 0;
 	virtual void exit() = 0;
-	virtual std::string getEventType() const = 0;
 	void setDelegate(SA::delegate<void(FMOD_RESULT, std::string)> func)
 	{
 		ErrorDelegate = func;

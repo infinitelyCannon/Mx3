@@ -5,7 +5,9 @@ list(INSERT CMAKE_MODULE_PATH 0 "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 find_package(FMOD REQUIRED)
 
-enable_testing()
+if(PROJECT_NAME STREQUAL CMAKE_PROJECT_NAME)
+	enable_testing()
+endif()
 
 set(SOURCES src/Mx3.cpp
 	src/LoopRegion.cpp
@@ -14,7 +16,6 @@ set(SOURCES src/Mx3.cpp
 )
 
 if(WIN32)
-	set(TEST_SOURCES "tests/common.cpp" "tests/win32/common_platform.cpp" "tests/ConsoleTest.cpp")
 	set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif(WIN32)
 
@@ -23,19 +24,16 @@ target_include_directories(Mx3 PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include")
 target_compile_features(Mx3 PUBLIC cxx_std_11)
 set_target_properties(Mx3 PROPERTIES CXX_EXTENSIONS OFF)
 
-add_executable(ConsoleTest ${TEST_SOURCES})
-target_include_directories(ConsoleTest PRIVATE ${FMOD_INCLUDE_DIRS})
+if(UNIX)
+	set(THREADS_PREFER_PTHREAD_FLAG ON)
+	find_package(Threads REQUIRED)
+	target_link_libraries(Mx3 Threads::Threads)
+endif(UNIX)
 
 #CTest Modules
 add_executable(FunctionTest "${CMAKE_CURRENT_SOURCE_DIR}/tests/FunctionTest.cpp")
 target_link_libraries(FunctionTest Mx3)
 add_test(NAME FunctionTest COMMAND FunctionTest WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/tests/data")
-
-if(WIN32)
-	target_include_directories(ConsoleTest PRIVATE "${PROJECT_SOURCE_DIR}/tests/win32")
-endif(WIN32)
-
-target_link_libraries(ConsoleTest Mx3)
 
 if(DEFINED CPU)
 	if(${CPU} STREQUAL "x86")
