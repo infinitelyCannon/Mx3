@@ -30,7 +30,7 @@ Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 #ifdef WIN32
 	HRESULT r = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 	if(r == S_FALSE)
-		std::cerr << "Error: COM library already started on this thread." << std::endl;
+		std::cout << "Warning: COM library already started on this thread." << std::endl;
 	else if(r == RPC_E_CHANGED_MODE)
 		std::cerr << "Error: COM library started under differnt concurrency model." << std::endl;
 	else if(r != S_OK)
@@ -386,12 +386,23 @@ void Mx3::play(std::string filepath)
 		result = mTimeline->setPaused(false);
 		ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 	}
+
+	result = mTimeline->setVolume(mVolume);
+	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 }
 
 void Mx3::setGlobalVolume(float value)
 {
-	result = mChannel->setVolume(value);
-	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+	mVolume = value;
+
+	if(mTimeline != nullptr)
+	{
+		if(isPaused() || isPlaying())
+		{
+			result = mChannel->setVolume(value);
+			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+		}
+	}
 }
 
 void Mx3::stop()
@@ -416,7 +427,7 @@ void Mx3::update()
 #ifdef WIN32
 	HRESULT r = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 	if(r == S_FALSE)
-		std::cerr << "Error: COM library already started on this thread." << std::endl;
+		std::cout << "Warning: COM library already started on this thread." << std::endl;
 	else if(r == RPC_E_CHANGED_MODE)
 		std::cerr << "Error: COM library started under differnt concurrency model." << std::endl;
 	else if(r != S_OK)

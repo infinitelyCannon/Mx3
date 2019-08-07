@@ -48,7 +48,6 @@ private:
 
 	SA::delegate<void(std::string)> ErrorDelegate;
 	bool shouldQuit = false;
-	unsigned int test = 0;
 	FMOD::System *mSystem;
 	std::thread *mUpdate;
 	std::mutex mMutex;
