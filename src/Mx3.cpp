@@ -11,6 +11,7 @@
 
 #ifdef WIN32
 #include <combaseapi.h>
+#include <winerror.h>
 #endif // WIN32
 
 // Component Headers
@@ -33,7 +34,7 @@ Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 	else if(r == RPC_E_CHANGED_MODE)
 		std::cerr << "Error: COM library started under differnt concurrency model." << std::endl;
 	else if(r != S_OK)
-		std::cerr << "Error: Failed to initialize COM" << std::endl;
+		std::cerr << "Error: Failed to initialize COM. Code " << HRESULT_CODE(r) << std::endl;
 #endif // WIN32
 	FMOD::ChannelGroup *masterGroup;
 	unsigned int version = 0;
@@ -159,6 +160,8 @@ float Mx3::curveFunction(float x, Point start, Point mid, Point end)
 
 		return (a2 * std::pow(x - end.x, 3.0f)) + (b2 * (x - end.x)) + end.y;
 	}
+	else
+		return 0.0f;
 }
 
 void Mx3::ErrorCheck(FMOD_RESULT result, std::string header)
@@ -417,7 +420,7 @@ void Mx3::update()
 	else if(r == RPC_E_CHANGED_MODE)
 		std::cerr << "Error: COM library started under differnt concurrency model." << std::endl;
 	else if(r != S_OK)
-		std::cerr << "Error: Failed to initialize COM" << std::endl;
+		std::cerr << "Error: Failed to initialize COM. Code " << HRESULT_CODE(r) << std::endl;
 #endif // WIN32
 
 	while(!shouldQuit)
