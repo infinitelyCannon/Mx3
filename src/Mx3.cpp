@@ -28,7 +28,11 @@ Mx3::Mx3(int maxChannels, FMOD_INITFLAGS flags, void *externalDriverData) :
 {
 #ifdef WIN32
 	HRESULT r = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-	if(r != S_OK)
+	if(r == S_FALSE)
+		std::cerr << "Error: COM library already started on this thread." << std::endl;
+	else if(r == RPC_E_CHANGED_MODE)
+		std::cerr << "Error: COM library started under differnt concurrency model." << std::end;
+	else if(r != S_OK)
 		std::cerr << "Error: Failed to initialize COM" << std::endl;
 #endif // WIN32
 	FMOD::ChannelGroup *masterGroup;
@@ -408,7 +412,11 @@ void Mx3::update()
 {
 #ifdef WIN32
 	HRESULT r = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-	if(r != S_OK)
+	if(r == S_FALSE)
+		std::cerr << "Error: COM library already started on this thread." << std::endl;
+	else if(r == RPC_E_CHANGED_MODE)
+		std::cerr << "Error: COM library started under differnt concurrency model." << std::end;
+	else if(r != S_OK)
 		std::cerr << "Error: Failed to initialize COM" << std::endl;
 #endif // WIN32
 
