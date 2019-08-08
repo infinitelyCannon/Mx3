@@ -139,8 +139,8 @@ void Mx3::BindErrorCallback(SA::delegate<void(std::string)> func)
 
 void Mx3::changeTimePosition(unsigned int position)
 {
-	result = mChannel->setPosition(position, FMOD_TIMEUNIT_MS);
-	ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
+	for(Track *t : mTracks)
+		t->setPosition(position);
 }
 
 float Mx3::curveFunction(float x, Point start, Point mid, Point end)
@@ -399,7 +399,7 @@ void Mx3::setGlobalVolume(float value)
 	{
 		if(isPaused() || isPlaying())
 		{
-			result = mChannel->setVolume(value);
+			result = mTimeline->setVolume(value);
 			ErrorCheck(result, "Mx3.cpp Line " + std::to_string(__LINE__ - 1));
 		}
 	}

@@ -54,7 +54,6 @@ private:
 	FMOD::ChannelGroup *mTimeline = nullptr;
 	FMOD::Channel *mChannel;
 	FMOD_RESULT result;
-	//std::vector<FMOD::Sound *> mSounds;
 	std::vector<Component *> mComponents;
 	std::vector<Track *> mTracks;
 	std::vector<ComponentEvent> mEvents;

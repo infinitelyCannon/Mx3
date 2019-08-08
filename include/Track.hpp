@@ -28,6 +28,7 @@ public:
 	std::vector<TrackSource> *getSourceRef();
 	FMOD::ChannelGroup *getChannelGroup();
 	void setVolume(float volume);
+	void setPosition(unsigned int position);
 
 	friend class Mx3;
 	std::string name;

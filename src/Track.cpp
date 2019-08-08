@@ -61,6 +61,12 @@ void Track::release()
 	mSources.clear();
 }
 
+void Track::setPosition(unsigned int position)
+{
+	for(TrackSource s : mSources)
+		DeferError(s.channel->setPosition(position, FMOD_TIMEUNIT_MS), "Changing Position");
+}
+
 Track::~Track()
 {
 }
