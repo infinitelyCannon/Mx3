@@ -25,14 +25,21 @@ add_executable(FmodTest
 	common.cpp 
 	"${PLATFORM_FILE}")
 
+if(UNIX)
+	find_package(cppzmq)
+
+	add_executable(DebugTerminal "linux/debug/debug_terminal.cpp")
+endif()
+
 target_link_libraries(ClassTest PRIVATE Mx3)
 target_link_libraries(FmodTest PRIVATE Mx3)
 
 if(UNIX)
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
 	find_package(Threads REQUIRED)
-	target_link_libraries(ClassTest PRIVATE Threads::Threads)
-	target_link_libraries(FmodTest PRIVATE Threads::Threads)
+	target_link_libraries(ClassTest PRIVATE Threads::Threads cppzmq)
+	target_link_libraries(FmodTest PRIVATE Threads::Threads cppzmq)
+	target_link_libraries(DebugTerminal Threads::Threads cppzmq)
 endif(UNIX)
 
 if(DEFINED CPU)

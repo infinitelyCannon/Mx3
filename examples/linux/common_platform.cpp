@@ -7,12 +7,15 @@ Copyright (c), Firelight Technologies Pty, Ltd 2014-2021.
 #include <termios.h>
 #include <vector>
 #include <string>
+#include <zmq.hpp>
 
 static unsigned int gPressedButtons = 0;
 static unsigned int gDownButtons = 0;
 static std::string gConsoleText;
 static std::vector<char *> gPathList;
 static termios originalTerm = {0};
+static zmq::context_t gContext(1);
+static zmq::socket_t gSocket(gContext, zmq::socket_type::req);
 
 static void RevertTerminal()
 {
@@ -23,6 +26,7 @@ static void RevertTerminal()
 
 void Common_Init(void **extraDriverData)
 {
+    /*
     int err = tcgetattr(STDIN_FILENO, &originalTerm);
     assert(err == 0);
 
@@ -41,6 +45,9 @@ void Common_Init(void **extraDriverData)
     assert(err == 0);
     
     printf("%c[?25l", 0x1B); // Hide the cursor
+    */
+   printf("Connecting to output server...\n");
+   gSocket.connect("tcp://localhost:5555");
 }
 
 void Common_Close()
@@ -71,6 +78,7 @@ void Common_Update()
     /*
         Capture key input
     */
+   /*
     unsigned int newButtons = 0;
     while (IsKeyPressed())
     {   
@@ -90,15 +98,28 @@ void Common_Update()
 
     gPressedButtons = (gDownButtons ^ newButtons) & newButtons;
     gDownButtons = newButtons;
+    */
 
     /*
         Update the screen
     */
+   /*
     printf("%c[H", 0x1B);               // Move cursor to home position
     printf("%s", gConsoleText.c_str()); // Terminal console is already double buffered, so just print
     printf("%c[J", 0x1B);               // Clear the rest of the screen
     
     gConsoleText.clear();
+    */
+   zmq::message_t request(gConsoleText.size());
+   memcpy(request.data(), gConsoleText.data(), gConsoleText.size());
+   gSocket.send(request, zmq::send_flags::none);
+
+   gConsoleText.clear();
+
+   zmq::message_t reply;
+   gSocket.recv(reply, zmq::recv_flags::none);
+   const unsigned int *ptr = reply.data<unsigned int>();
+   gPressedButtons = *ptr;
 }
 
 void Common_Sleep(unsigned int ms)

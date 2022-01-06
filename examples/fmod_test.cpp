@@ -10,6 +10,8 @@ small runtime CPU hit.
 ==============================================================================*/
 #include "fmod.hpp"
 #include "common.h"
+#include <fstream>
+#include <string>
 
 int FMOD_Main()
 {
@@ -18,8 +20,22 @@ int FMOD_Main()
     FMOD::Channel    *channel = 0;
     FMOD_RESULT       result;
     void             *extradriverdata = 0;
+    std::ifstream     args;
+    std::string       file  = "none";
+    int               start = 0, stop = 0;
     
     Common_Init(&extradriverdata);
+
+    args.open("./args.txt");
+
+    if(!args.is_open())
+        Common_Fatal("Arguments file (args.txt) not found.");
+
+    std::getline(args, file);
+    args >> start;
+    args >> stop;
+
+    args.close();
 
     /*
         Create a System object and initialize.
@@ -30,7 +46,7 @@ int FMOD_Main()
     result = system->init(32, FMOD_INIT_NORMAL, extradriverdata);
     ERRCHECK(result);
 
-    result = system->createStream("C:\\Users\\Sigmund\\Desktop\\Temp\\Title Screen.mp3", FMOD_LOOP_NORMAL | FMOD_2D, 0, &sound);
+    result = system->createStream(file.c_str(), FMOD_LOOP_NORMAL | FMOD_2D, 0, &sound);
     ERRCHECK(result);
 
     /*
