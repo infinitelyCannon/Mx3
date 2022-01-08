@@ -7,15 +7,20 @@ Copyright (c), Firelight Technologies Pty, Ltd 2014-2021.
 #include <termios.h>
 #include <vector>
 #include <string>
+
+#ifdef USING_ZMQ
 #include <zmq.hpp>
+#endif
 
 static unsigned int gPressedButtons = 0;
 static unsigned int gDownButtons = 0;
 static std::string gConsoleText;
 static std::vector<char *> gPathList;
 static termios originalTerm = {0};
+#ifdef USING_ZMQ
 static zmq::context_t gContext(1);
 static zmq::socket_t gSocket(gContext, zmq::socket_type::req);
+#endif
 
 static void RevertTerminal()
 {
@@ -26,7 +31,7 @@ static void RevertTerminal()
 
 void Common_Init(void **extraDriverData)
 {
-    /*
+#ifndef USING_ZMQ
     int err = tcgetattr(STDIN_FILENO, &originalTerm);
     assert(err == 0);
 
@@ -45,9 +50,10 @@ void Common_Init(void **extraDriverData)
     assert(err == 0);
     
     printf("%c[?25l", 0x1B); // Hide the cursor
-    */
+#else
    printf("Connecting to output server...\n");
    gSocket.connect("tcp://localhost:5555");
+#endif
 }
 
 void Common_Close()
@@ -75,10 +81,10 @@ static bool IsKeyPressed()
 
 void Common_Update()
 {
+#ifndef USING_ZMQ
     /*
         Capture key input
     */
-   /*
     unsigned int newButtons = 0;
     while (IsKeyPressed())
     {   
@@ -98,28 +104,28 @@ void Common_Update()
 
     gPressedButtons = (gDownButtons ^ newButtons) & newButtons;
     gDownButtons = newButtons;
-    */
 
     /*
         Update the screen
     */
-   /*
     printf("%c[H", 0x1B);               // Move cursor to home position
     printf("%s", gConsoleText.c_str()); // Terminal console is already double buffered, so just print
     printf("%c[J", 0x1B);               // Clear the rest of the screen
     
     gConsoleText.clear();
-    */
-   zmq::message_t request(gConsoleText.size());
-   memcpy(request.data(), gConsoleText.data(), gConsoleText.size());
-   gSocket.send(request, zmq::send_flags::none);
+#else
+    zmq::message_t request(gConsoleText.size());
+    memcpy(request.data(), gConsoleText.data(), gConsoleText.size());
+    gSocket.send(request, zmq::send_flags::none);
 
-   gConsoleText.clear();
+    gConsoleText.clear();
 
-   zmq::message_t reply;
-   gSocket.recv(reply, zmq::recv_flags::none);
-   const unsigned int *ptr = reply.data<unsigned int>();
-   gPressedButtons = *ptr;
+    zmq::message_t reply;
+    gSocket.recv(reply, zmq::recv_flags::none);
+    unsigned int *ptr = reply.data<unsigned int>();
+    gPressedButtons = *ptr;
+    gDownButtons = *(++ptr);
+#endif
 }
 
 void Common_Sleep(unsigned int ms)

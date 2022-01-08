@@ -1,3 +1,4 @@
+# This function grabs the appropriate dll (Debug or Release) and copies it to the build folder
 function(fmod_post_build tar library cpu)
 	if(WIN32)
 		string(REPLACE "api/core/inc" "api" FMOD_BASE "${FMOD_CORE_DIR}")
@@ -25,10 +26,14 @@ add_executable(FmodTest
 	common.cpp 
 	"${PLATFORM_FILE}")
 
-if(UNIX)
+if(UNIX AND USE_ZMQ) #If you want to use a seperate terminal for output (and have FMOD print to std out)
 	find_package(cppzmq)
 
+	add_compile_definitions(USING_ZMQ)
 	add_executable(DebugTerminal "linux/debug/debug_terminal.cpp")
+	target_link_libraries(ClassTest PRIVATE cppzmq)
+	target_link_libraries(FmodTest PRIVATE cppzmq)
+	target_link_libraries(DebugTerminal cppzmq)
 endif()
 
 target_link_libraries(ClassTest PRIVATE Mx3)
@@ -37,9 +42,11 @@ target_link_libraries(FmodTest PRIVATE Mx3)
 if(UNIX)
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
 	find_package(Threads REQUIRED)
-	target_link_libraries(ClassTest PRIVATE Threads::Threads cppzmq)
-	target_link_libraries(FmodTest PRIVATE Threads::Threads cppzmq)
-	target_link_libraries(DebugTerminal Threads::Threads cppzmq)
+	target_link_libraries(ClassTest PRIVATE Threads::Threads)
+	target_link_libraries(FmodTest PRIVATE Threads::Threads)
+	if(USE_ZMQ)
+		target_link_libraries(DebugTerminal Threads::Threads)
+	endif()
 endif(UNIX)
 
 if(DEFINED CPU)

@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <string>
+#include <vector>
 
 static unsigned int gPressedButtons = 0;
 static unsigned int gDownButtons = 0;
@@ -111,8 +112,8 @@ int main(int argc, char**argv)
         printf("%s", reqStr.c_str()); // Terminal console is already double buffered, so just print
         printf("%c[J", 0x1B);               // Clear the rest of the screen
 
-        const size_t size = sizeof(gPressedButtons);
-        zmq::message_t reply(&gPressedButtons, size);
+        std::vector<unsigned int> buttons = {gPressedButtons, gDownButtons};
+        zmq::message_t reply(buttons);
         socket.send(reply, zmq::send_flags::none);
     }
 
