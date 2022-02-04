@@ -32,8 +32,8 @@ int FMOD_Main()
         Common_Fatal("Arguments file (args.txt) not found.");
 
     std::getline(args, file);
-    args >> start;
-    args >> stop;
+    //args >> start;
+    //args >> stop;
 
     args.close();
 

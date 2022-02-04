@@ -23,7 +23,7 @@ Copyright (c), Firelight Technologies Pty, Ltd 2012-2021.
 #include <assert.h>
 
 #define NUM_COLUMNS 50
-#define NUM_ROWS 25
+#define NUM_ROWS 28
 
 #ifndef Common_Sin
     #define Common_Sin sin

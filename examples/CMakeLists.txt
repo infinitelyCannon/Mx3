@@ -9,6 +9,16 @@ function(fmod_post_build tar library cpu)
 	endif()
 endfunction()
 
+# Copies dependent DLLs to the target's build folder
+function(copy_library_to_target tar lib)
+	if(WIN32)
+		add_custom_command(TARGET ${tar} POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		$<TARGET_FILE:${lib}>
+		$<TARGET_FILE_DIR:${tar}>)
+	endif()
+endfunction()
+
 if(WIN32)
 	set(PLATFORM_FILE "win32/common_platform.cpp")
 endif()
@@ -19,12 +29,12 @@ endif()
 add_executable(ClassTest 
     class_test.cpp 
     common.cpp 
-    "${PLATFORM_FILE}")
+    "${PLATFORM_FILE}" "widgets/widgets.cpp")
 
 add_executable(FmodTest 
 	fmod_test.cpp 
 	common.cpp 
-	"${PLATFORM_FILE}")
+	"${PLATFORM_FILE}" "widgets/widgets.cpp")
 
 if(UNIX AND USE_ZMQ) #If you want to use a seperate terminal for output (and have FMOD print to std out)
 	find_package(cppzmq)
@@ -38,6 +48,7 @@ endif()
 
 target_link_libraries(ClassTest PRIVATE Mx3)
 target_link_libraries(FmodTest PRIVATE Mx3)
+COPY_LIBRARY_TO_TARGET("ClassTest" "Mx3")
 
 if(UNIX)
 	set(THREADS_PREFER_PTHREAD_FLAG ON)
