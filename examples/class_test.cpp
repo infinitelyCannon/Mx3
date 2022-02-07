@@ -38,6 +38,7 @@ int FMOD_Main()
 	WidgetState wState = WidgetState::Main;
 	Tabs mTabs;
 	Playlist wQueue;
+	int RepeatMode = 1;
 
 	Common_Init(0);
 
@@ -50,9 +51,8 @@ int FMOD_Main()
 
 	Engine.AddToQueue(Queue);
 	Engine.Play(1);
-	lastTime = std::chrono::steady_clock::now();
 
-	Engine.SetVolume(0.4f);
+	lastTime = std::chrono::steady_clock::now();
 
 	do
 	{
@@ -86,8 +86,9 @@ int FMOD_Main()
 			switch (wState)
 			{
 				case WidgetState::Main:
-					Engine.SwapSongs(1, 4);
-					wQueue.SwapSongs(1, 4);
+					Engine.SetRepeatMode(
+						(RepeatMode + 1) % 2
+					);
 					break;
 				case WidgetState::Tabs:
 					Engine.RemoveFromQueue(wQueue.GetIndex());
@@ -244,7 +245,7 @@ int FMOD_Main()
 			Common_Draw("==================================================");
 			Common_Draw("");
 			Common_Draw("Press %s to toggle pause", Common_BtnStr(BTN_ACTION1));
-			Common_Draw("Press %s to swap 1 with 4", Common_BtnStr(BTN_ACTION2));
+			Common_Draw("Press %s to toggle repeat modes", Common_BtnStr(BTN_ACTION2));
 			Common_Draw("Press %s to raise volume", Common_BtnStr(BTN_UP));
 			Common_Draw("Press %s to lower volume", Common_BtnStr(BTN_DOWN));
 			Common_Draw("Press %s to skip back", Common_BtnStr(BTN_LEFT));

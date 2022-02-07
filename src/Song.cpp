@@ -4,14 +4,17 @@
 #define ERRCHECK(x) ErrorCheck(x, __FILE__, __LINE__)
 ErrorCallback Song::mErrorCallback = nullptr;
 
-Song::Song(FMOD::System *system, FMOD::Sound *sound, FMOD::ChannelGroup *parent) :
+Song::Song(FMOD::System *system, std::string file, FMOD::ChannelGroup *parent) :
 mSystem(system),
-mSound(sound),
+mSound(0),
 mParent(parent),
 mState(State::LOADING),
-mChannel(nullptr)
+mChannel(0)
 {
-
+    ERRCHECK(mSystem->createSound(file.c_str(),
+        FMOD_2D | FMOD_NONBLOCKING | FMOD_ACCURATETIME | FMOD_LOOP_NORMAL | FMOD_CREATESTREAM,
+        0,
+        &mSound));
 }
 
 void Song::ErrorCheck(FMOD_RESULT result, const char* file, int line)
@@ -76,6 +79,22 @@ void Song::SetErrorCallback(ErrorCallback callback)
     mErrorCallback = callback;
 }
 
+void Song::SetRepeatMode(int mode)
+{
+    switch (mode)
+    {
+        case 0:
+            ERRCHECK(mChannel->setMode(FMOD_LOOP_OFF));
+            break;
+        case 1:
+        case 2:
+            ERRCHECK(mChannel->setMode(FMOD_LOOP_NORMAL));
+            break;
+        default:
+            break;
+    }
+}
+
 void Song::Update(float deltaTime)
 {
     switch (mState)
@@ -84,6 +103,7 @@ void Song::Update(float deltaTime)
         // One-time initialization (for now, just fall through)
     case State::TOPLAY:
         ERRCHECK(mSystem->playSound(mSound, mParent, false, &mChannel));
+        ERRCHECK(mChannel->setMode(FMOD_LOOP_NORMAL));
         mState = State::PLAYING;
         break;
     case State::LOADING:
@@ -120,6 +140,7 @@ Song::~Song()
     FMOD_RESULT result;
 
     result = mChannel->stop();
+    mSound->release();
     if (result != FMOD_OK && result != FMOD_ERR_INVALID_HANDLE)
         mErrorCallback(FMOD_ErrorString(result), __FILE__, __LINE__);
 }

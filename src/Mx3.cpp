@@ -59,9 +59,9 @@ void Mx3::ClearQueue()
 {
 	Stop();
 	mQueue.clear();
-	for (auto sound : mSounds)
-		ERRCHECK(sound.second->release());
-	mSounds.clear();
+	//for (auto sound : mSounds)
+	//	ERRCHECK(sound.second->release());
+	//mSounds.clear();
 }
 
 void Mx3::Debug()
@@ -83,7 +83,7 @@ unsigned int Mx3::GetLength()
 	if(mChannels.empty())
 		return 0;
 	
-	return mChannels.begin()->second.GetLength();
+	return mChannels.begin()->second->GetLength();
 }
 
 bool Mx3::GetPaused()
@@ -101,7 +101,7 @@ unsigned int Mx3::GetPosition()
 	if(mChannels.empty())
 		return 0;
 
-	return mChannels.begin()->second.GetPosition();
+	return mChannels.begin()->second->GetPosition();
 }
 
 float Mx3::GetVolume()
@@ -113,14 +113,14 @@ float Mx3::GetVolume()
 
 bool Mx3::IsPlaying()
 {
-	bool result = false;;
+	bool result = false;
 	ERRCHECK(mTracks[HEAD_CHANNEL]->isPlaying(&result));
 	return result;
 }
 
 bool Mx3::IsSoundLoaded(const std::string file)
 {
-	auto songRef = mSounds.find(file);
+	/*auto songRef = mSounds.find(file);
 	if(songRef == mSounds.end())
 		return false;
 
@@ -129,24 +129,24 @@ bool Mx3::IsSoundLoaded(const std::string file)
 		FMOD_OPENSTATE state;
 		ERRCHECK(songRef->second->getOpenState(&state, 0, 0, 0));
 		return state != FMOD_OPENSTATE_ERROR;
-	}
+	}*/
 	
 	return false;
 }
 
-void Mx3::LoadSound(const std::string name)
-{
-	if (IsSoundLoaded(name))
-		return;
-
-	auto soundRef = mSounds.find(name);
-	if (soundRef != mSounds.end())
-		return;
-
-	mSounds[name] = nullptr;
-	FMOD_MODE mode = FMOD_NONBLOCKING | FMOD_CREATESTREAM | FMOD_2D | FMOD_LOOP_NORMAL;
-	ERRCHECK(mSystem->createSound(name.c_str(), mode, 0, &mSounds[name]));
-}
+//void Mx3::LoadSound(const std::string name)
+//{
+//	if (IsSoundLoaded(name))
+//		return;
+//
+//	auto soundRef = mSounds.find(name);
+//	if (soundRef != mSounds.end())
+//		return;
+//
+//	mSounds[name] = nullptr;
+//	FMOD_MODE mode = FMOD_NONBLOCKING | FMOD_CREATESTREAM | FMOD_2D | FMOD_LOOP_NORMAL;
+//	ERRCHECK(mSystem->createSound(name.c_str(), mode, 0, &mSounds[name]));
+//}
 
 void Mx3::Next()
 {
@@ -166,31 +166,29 @@ void Mx3::Play(int index)
 	if (!mChannels.empty())
 		Stop();
 
-	LoadSound(mQueue[index]);
+	//LoadSound(mQueue[index]);
 
 	NowPlayingIdx = index;
 	
-	mChannels.emplace(
-		std::make_pair(NextChannelID++, Song(mSystem, mSounds[mQueue[index]], mTracks[SOLO_CHANNEL]))
-	);
+	mChannels.emplace(NextChannelID++, new Song(mSystem, mQueue[index], mTracks[SOLO_CHANNEL]));
 }
 
-void Mx3::PlaySound(std::string file)
-{
-	auto songRef = mSounds.find(file);
-
-	if(songRef == mSounds.end())
-	{
-		LoadSound(file);
-		songRef = mSounds.find(file);
-		if(songRef == mSounds.end())
-			return;
-	}
-
-	mChannels.emplace(
-		std::make_pair(NextChannelID++, Song(mSystem, mSounds[file], mTracks[SOLO_CHANNEL]))
-	);
-}
+//void Mx3::PlaySound(std::string file)
+//{
+//	auto songRef = mSounds.find(file);
+//
+//	if(songRef == mSounds.end())
+//	{
+//		LoadSound(file);
+//		songRef = mSounds.find(file);
+//		if(songRef == mSounds.end())
+//			return;
+//	}
+//
+//	mChannels.emplace(
+//		std::make_pair(NextChannelID++, Song(mSystem, file, mTracks[SOLO_CHANNEL]))
+//	);
+//}
 
 void Mx3::Previous()
 {
@@ -231,6 +229,14 @@ void Mx3::SetErrorCallback(ErrorCallback func)
 void Mx3::SetPaused(bool paused)
 {
 	ERRCHECK(mTracks[HEAD_CHANNEL]->setPaused(paused));
+}
+
+void Mx3::SetRepeatMode(int mode)
+{
+	if (!IsPlaying())
+		return;
+
+	mChannels.begin()->second->SetRepeatMode(mode);
 }
 
 void Mx3::SetVolume(float volume, bool clamp)
@@ -279,16 +285,16 @@ void Mx3::SwapSongs(int first, int second)
 		NowPlayingIdx = first;
 }
 
-void Mx3::UnLoadSound(std::string file)
-{
-	auto soundRef = mSounds.find(file);
-
-	if(soundRef != mSounds.end())
-		return;
-
-	ERRCHECK(mSounds[file]->release());
-	mSounds.erase(soundRef);
-}
+//void Mx3::UnLoadSound(std::string file)
+//{
+//	auto soundRef = mSounds.find(file);
+//
+//	if(soundRef != mSounds.end())
+//		return;
+//
+//	ERRCHECK(mSounds[file]->release());
+//	mSounds.erase(soundRef);
+//}
 
 void Mx3::Update(float deltaTime)
 {
@@ -296,8 +302,8 @@ void Mx3::Update(float deltaTime)
 
 	for (auto it = mChannels.begin(); it != mChannels.end();)
 	{
-		it->second.Update(deltaTime);
-		if (it->second.IsStopped())
+		it->second->Update(deltaTime);
+		if (it->second->IsStopped())
 			it = mChannels.erase(it);
 		else
 			++it;
@@ -307,8 +313,9 @@ void Mx3::Update(float deltaTime)
 Mx3::~Mx3()
 {
 	ERRCHECK(mTracks[HEAD_CHANNEL]->stop());
-	for(auto sound : mSounds)
-		ERRCHECK(sound.second->release());
+	mChannels.clear();
+	//for(auto sound : mSounds)
+	//	ERRCHECK(sound.second->release());
 
 	ERRCHECK(mSystem->release());
 }

@@ -9,7 +9,7 @@ static unsigned int gDownButtons = 0;
 static termios originalTerm = {0};
 static std::string gConsoleText;
 #define NUM_COLUMNS 50
-#define NUM_ROWS 25
+#define NUM_ROWS 28
 enum Common_Button
 {
     BTN_ACTION1,

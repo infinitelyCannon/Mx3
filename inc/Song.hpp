@@ -2,6 +2,7 @@
 #define MX3_SONG
 
 #include <functional>
+#include <string>
 #include "fmod.hpp"
 
 typedef std::function<void(const char* msg, const char* file, int line)> ErrorCallback;
@@ -9,7 +10,7 @@ typedef std::function<void(const char* msg, const char* file, int line)> ErrorCa
 class Song 
 {
 public:
-    Song(FMOD::System *system, FMOD::Sound *sound, FMOD::ChannelGroup *parent);
+    Song(FMOD::System *system, std::string file, FMOD::ChannelGroup* parent);
     ~Song();
 
     void Update(float deltaTime);
@@ -18,6 +19,7 @@ public:
     unsigned int GetPosition();
     unsigned int GetLength();
     void Stop();
+    void SetRepeatMode(int mode);
 
 private:
     void ErrorCheck(FMOD_RESULT reuslt, const char* file, int line);

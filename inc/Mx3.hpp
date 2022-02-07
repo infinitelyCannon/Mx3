@@ -6,11 +6,12 @@
 #include <vector>
 #include <functional>
 #include <utility>
+#include <memory>
 #include "fmod.hpp"
 #include "Song.hpp"
 
 typedef std::map<std::string, FMOD::Sound*> SoundMap;
-typedef std::map<int, Song> ChannelMap;
+typedef std::map<int, std::unique_ptr<Song>> ChannelMap;
 typedef std::map<std::string, FMOD::ChannelGroup*> TrackMap;
 typedef std::function<void(const char* msg, const char* file, int line)> ErrorCallback;
 
@@ -23,9 +24,9 @@ public:
 
 	void Debug();
 
-	void LoadSound(std::string file);
-	void UnLoadSound(std::string file);
-	void PlaySound(std::string file);
+	//void LoadSound(std::string file);
+	//void UnLoadSound(std::string file);
+	//void PlaySound(std::string file);
 	void SetVolume(float volume, bool clamp = true);
 	float GetVolume();
 	void Update(float deltaTime);
@@ -46,6 +47,7 @@ public:
 	unsigned int GetLength();
 	void SetPosition(unsigned int position);
 	bool IsPlaying();
+	void SetRepeatMode(int mode);
 	
 	static void SetErrorCallback(ErrorCallback func);
 
@@ -61,7 +63,7 @@ private:
 
 	static ErrorCallback mErrorCallback;
 	std::vector<std::string> mQueue;
-	SoundMap mSounds;
+	//SoundMap mSounds;
 	ChannelMap mChannels;
 	TrackMap mTracks;
 	FMOD::System* mSystem;
