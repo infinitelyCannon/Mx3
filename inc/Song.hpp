@@ -5,7 +5,7 @@
 #include <string>
 #include "fmod.hpp"
 
-typedef std::function<void(const char* msg, const char* file, int line)> ErrorCallback;
+typedef std::function<void(const char* msg)> ErrorCallback;
 
 class Song 
 {

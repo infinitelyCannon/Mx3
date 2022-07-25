@@ -12,8 +12,25 @@
 
 typedef std::map<std::string, FMOD::Sound*> SoundMap;
 typedef std::map<int, std::unique_ptr<Song>> ChannelMap;
-typedef std::map<std::string, FMOD::ChannelGroup*> TrackMap;
-typedef std::function<void(const char* msg, const char* file, int line)> ErrorCallback;
+//typedef std::map<std::string, FMOD::ChannelGroup*> TrackMap;
+typedef std::pair<FMOD::Sound*, std::unique_ptr<Song>> Recyclable;
+typedef std::function<void(const char* msg)> ErrorCallback;
+
+struct Implementation
+{
+	Implementation() :
+		mSystem(nullptr),
+		NextChannelID(0)
+	{};
+	~Implementation();
+
+	FMOD::System* mSystem;
+	SoundMap Sounds;
+	ChannelMap Channels;
+	std::vector<Recyclable> Cleanup;
+
+	int NextChannelID;
+};
 
 class Mx3
 {
@@ -22,53 +39,31 @@ public:
 	Mx3(int maxchannels, FMOD_INITFLAGS flags, void *driverdata = 0);
 	~Mx3();
 
-	void Debug();
-
-	//void LoadSound(std::string file);
-	//void UnLoadSound(std::string file);
-	//void PlaySound(std::string file);
+	void LoadSound(std::string file);
+	void UnLoadSound(std::string file);
+	void PlaySound(std::string file);
 	void SetVolume(float volume, bool clamp = true);
 	float GetVolume();
 	void Update(float deltaTime);
-
-	// Playlist Functionality
-	void AddToQueue(std::string file);
-	void AddToQueue(std::vector<std::string> &files);
-	void RemoveFromQueue(int index);
-	void ClearQueue();
-	void Next();
-	void Previous();
-	void Play(int index = 0);
 	void SetPaused(bool paused);
-	void SwapSongs(int first, int second);
-	bool GetPaused();
-	void Stop();
-	unsigned int GetPosition();
-	unsigned int GetLength();
-	void SetPosition(unsigned int position);
 	bool IsPlaying();
-	void SetRepeatMode(int mode);
 	
 	static void SetErrorCallback(ErrorCallback func);
+	static FMOD_RESULT ChannelCallback(FMOD_CHANNELCONTROL* ctrl, FMOD_CHANNELCONTROL_TYPE ctrlType, FMOD_CHANNELCONTROL_CALLBACK_TYPE callType, void* data1, void* data2);
 
 private:
-/*
-	void LoadSound(const std::string name);
-	void UnLoadSound(const std::string name);
-	int PlaySound(const std::string name);
-*/
-	bool bDebug = false;
+	Implementation *mImplementation;
+
 	void ErrorCheck(FMOD_RESULT result, const char *file, int line);
 	bool IsSoundLoaded(const std::string file);
 
+	static unsigned long long PCM2DSP(unsigned long long posiiton,
+		unsigned long long soundRate,
+		unsigned long long mixerRate);
+	static double DSP2PCM(unsigned long long dsp, double soundRate, double mixerRate);
+	static unsigned int PCM2MS(double pcm, float soundRate);
+
 	static ErrorCallback mErrorCallback;
-	std::vector<std::string> mQueue;
-	//SoundMap mSounds;
-	ChannelMap mChannels;
-	TrackMap mTracks;
-	FMOD::System* mSystem;
-	int NextChannelID = 0;
-	int NowPlayingIdx = 0;
 };
 
 #endif

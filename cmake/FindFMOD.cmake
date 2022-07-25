@@ -212,56 +212,56 @@ find_path(FMOD_STUDIO_DIR
 find_library(FMOD_LIBRARY_x64_DEBUG
     NAMES fmodL_vc
     PATHS
-    "$ENV{FMOD_DIR}\\core\\lib\\x64"
+    "$ENV{FMOD_DIR}\\api\\core\\lib\\x64"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x64"
 )
 
 find_library(FMOD_LIBRARY_x64
     NAMES fmod_vc
     PATHS
-    "$ENV{FMOD_DIR}\\core\\lib\\x64"
+    "$ENV{FMOD_DIR}\\api\\core\\lib\\x64"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x64"
 )
 
 find_library(FMOD_LIBRARY_x86_DEBUG
     NAMES fmodL_vc
     PATHS
-    "$ENV{FMOD_DIR}\\core\\lib\\x86"
+    "$ENV{FMOD_DIR}\\api\\core\\lib\\x86"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x86"
 )
 
 find_library(FMOD_LIBRARY_x86
     NAMES fmod_vc
     PATHS
-    "$ENV{FMOD_DIR}\\core\\lib\\x86"
+    "$ENV{FMOD_DIR}\\api\\core\\lib\\x86"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\core\\lib\\x86"
 )
 
 find_library(FMOD_STUDIO_x86
     NAMES fmodstudio_vc
     PATHS
-    "$ENV{FMOD_DIR}\\studio\\lib\\x86"
+    "$ENV{FMOD_DIR}\\api\\studio\\lib\\x86"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x86"
 )
 
 find_library(FMOD_STUDIO_x86_DEBUG
     NAMES fmodstudioL_vc
     PATHS
-    "$ENV{FMOD_DIR}\\studio\\lib\\x86"
+    "$ENV{FMOD_DIR}\\api\\studio\\lib\\x86"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x86"
 )
 
 find_library(FMOD_STUDIO_x64
     NAMES fmodstudio_vc
     PATHS
-    "$ENV{FMOD_DIR}\\studio\\lib\\x64"
+    "$ENV{FMOD_DIR}\\api\\studio\\lib\\x64"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x64"
 )
 
 find_library(FMOD_STUDIO_x64_DEBUG
     NAMES fmodstudioL_vc
     PATHS
-    "$ENV{FMOD_DIR}\\studio\\lib\\x64"
+    "$ENV{FMOD_DIR}\\api\\studio\\lib\\x64"
     "C:\\Program Files (x86)\\FMOD SoundSystem\\FMOD Studio API Windows\\api\\studio\\lib\\x64"
 )
 endif(WIN32)

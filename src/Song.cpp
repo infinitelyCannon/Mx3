@@ -1,5 +1,6 @@
 #include "Song.hpp"
 #include "fmod_errors.h"
+#include <format>
 
 #define ERRCHECK(x) ErrorCheck(x, __FILE__, __LINE__)
 ErrorCallback Song::mErrorCallback = nullptr;
@@ -21,8 +22,9 @@ void Song::ErrorCheck(FMOD_RESULT result, const char* file, int line)
 {
     if (result != FMOD_OK)
     {
+        std::string msg = std::format("[Mx3]:\t{} ({}) - {}", file, line, FMOD_ErrorString(result));
         if (mErrorCallback)
-            mErrorCallback(FMOD_ErrorString(result), file, line);
+            mErrorCallback(msg.c_str());
     }
 }
 
@@ -141,6 +143,4 @@ Song::~Song()
 
     result = mChannel->stop();
     mSound->release();
-    if (result != FMOD_OK && result != FMOD_ERR_INVALID_HANDLE)
-        mErrorCallback(FMOD_ErrorString(result), __FILE__, __LINE__);
 }
