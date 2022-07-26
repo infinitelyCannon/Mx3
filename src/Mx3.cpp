@@ -31,6 +31,8 @@ Mx3::Mx3(int maxchannels, FMOD_INITFLAGS fmodFlags, void* driverdata) :
 {
 	ERRCHECK(FMOD::System_Create(&mSystem, FMOD_VERSION));
 	ERRCHECK(mSystem->init(maxchannels, fmodFlags, driverdata));
+
+	ERRCHECK(mSystem->createChannelGroup("Mx3_Master", &MasterChannel));
 }
 
 FMOD_RESULT F_CALLBACK Mx3::ChannelCallback(FMOD_CHANNELCONTROL* ctrl, FMOD_CHANNELCONTROL_TYPE ctrlType, FMOD_CHANNELCONTROL_CALLBACK_TYPE callType, void* data1, void* data2)
@@ -57,6 +59,32 @@ void Mx3::ErrorCheck(FMOD_RESULT result, const char* file, int line)
 	}
 }
 
+unsigned int Mx3::GetLength()
+{
+	if (mChannels.empty() || !IsPlaying())
+		return 0;
+
+	//TODO: Need better heuristic to replace this.
+	return mChannels.begin()->second->GetLength();
+}
+
+bool Mx3::GetPaused()
+{
+	bool paused;
+	ERRCHECK(MasterChannel->getPaused(&paused));
+
+	return paused;
+}
+
+unsigned int Mx3::GetPosition()
+{
+	if (mChannels.empty() || !IsPlaying())
+		return 0;
+
+	//TODO: Need better heuristic to replace this.
+	return mChannels.begin()->second->GetPosition();
+}
+
 float Mx3::GetVolume()
 {
 	float volume;
@@ -68,7 +96,11 @@ float Mx3::GetVolume()
 
 bool Mx3::IsPlaying()
 {
-	return false;
+	bool playing;
+
+	ERRCHECK(MasterChannel->isPlaying(&playing));
+
+	return playing;
 }
 
 bool Mx3::IsSoundLoaded(const std::string file)
@@ -119,9 +151,20 @@ unsigned int Mx3::PCM2MS(double pcm, float soundRate)
 	return (1000.0 * pcm) / soundRate;
 }
 
-void Mx3::PlaySound(std::string file)
+int Mx3::Play(std::string file)
 {
+	auto foundIt = mSounds.find(file);
+	
+	if (foundIt == mSounds.end())
+	{
+		LoadSound(file);
+		foundIt = mSounds.find(file);
+		if (foundIt == mSounds.end())
+			return -1;
+	}
 
+	mChannels[NextChannelID++] = std::make_unique<Song>(mSystem, mSounds[file], MasterChannel);
+	return NextChannelID - 1;
 }
 
 void Mx3::SetErrorCallback(ErrorCallback func)

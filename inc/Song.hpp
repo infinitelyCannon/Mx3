@@ -10,7 +10,7 @@ typedef std::function<void(const char* msg)> ErrorCallback;
 class Song 
 {
 public:
-    Song(FMOD::System *system, std::string file, FMOD::ChannelGroup* parent);
+    Song(FMOD::System *system, FMOD::Sound *sound, FMOD::ChannelGroup* parent);
     ~Song();
 
     enum class State { INIT, TOPLAY, LOADING, PLAYING, STOPPING, STOPPED };
@@ -27,11 +27,12 @@ public:
 private:
     void ErrorCheck(FMOD_RESULT reuslt, const char* file, int line);
    
-    State mState;
+    State eState;
     FMOD::Channel *mChannel;
     FMOD::ChannelGroup *mParent;
     FMOD::Sound *mSound;
     FMOD::System *mSystem;
+    unsigned int Length;
     bool bStopRequested = false;
     static ErrorCallback mErrorCallback;
 };

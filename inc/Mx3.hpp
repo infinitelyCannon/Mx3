@@ -25,12 +25,15 @@ public:
 
 	void LoadSound(std::string file);
 	void UnLoadSound(std::string file);
-	void PlaySound(std::string file);
+	int Play(std::string file); // Using Play instead of "PlaySound" because of Win macro
 	void SetVolume(float volume, bool clamp = true);
 	float GetVolume();
 	void Update(float deltaTime);
+	bool GetPaused();
 	void SetPaused(bool paused);
 	bool IsPlaying();
+	unsigned int GetPosition();
+	unsigned int GetLength();
 	
 	static void SetErrorCallback(ErrorCallback func);
 	static FMOD_RESULT ChannelCallback(FMOD_CHANNELCONTROL* ctrl, FMOD_CHANNELCONTROL_TYPE ctrlType, FMOD_CHANNELCONTROL_CALLBACK_TYPE callType, void* data1, void* data2);
