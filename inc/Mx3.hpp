@@ -16,27 +16,11 @@ typedef std::map<int, std::unique_ptr<Song>> ChannelMap;
 typedef std::pair<FMOD::Sound*, std::unique_ptr<Song>> Recyclable;
 typedef std::function<void(const char* msg)> ErrorCallback;
 
-struct Implementation
-{
-	Implementation() :
-		mSystem(nullptr),
-		NextChannelID(0)
-	{};
-	~Implementation();
-
-	FMOD::System* mSystem;
-	SoundMap Sounds;
-	ChannelMap Channels;
-	std::vector<Recyclable> Cleanup;
-
-	int NextChannelID;
-};
-
 class Mx3
 {
 public:
 	Mx3();
-	Mx3(int maxchannels, FMOD_INITFLAGS flags, void *driverdata = 0);
+	Mx3(int maxchannels, FMOD_INITFLAGS fmodFlags, void *driverdata = 0);
 	~Mx3();
 
 	void LoadSound(std::string file);
@@ -52,7 +36,12 @@ public:
 	static FMOD_RESULT ChannelCallback(FMOD_CHANNELCONTROL* ctrl, FMOD_CHANNELCONTROL_TYPE ctrlType, FMOD_CHANNELCONTROL_CALLBACK_TYPE callType, void* data1, void* data2);
 
 private:
-	Implementation *mImplementation;
+	FMOD::System* mSystem;
+	SoundMap mSounds;
+	ChannelMap mChannels;
+	FMOD::ChannelGroup* MasterChannel;
+	std::vector<Recyclable> RecycleBin;
+	int NextChannelID;
 
 	void ErrorCheck(FMOD_RESULT result, const char *file, int line);
 	bool IsSoundLoaded(const std::string file);

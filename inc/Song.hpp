@@ -13,8 +13,11 @@ public:
     Song(FMOD::System *system, std::string file, FMOD::ChannelGroup* parent);
     ~Song();
 
+    enum class State { INIT, TOPLAY, LOADING, PLAYING, STOPPING, STOPPED };
+
     void Update(float deltaTime);
     bool IsStopped() const;
+    State GetState() const;
     static void SetErrorCallback(ErrorCallback callback);
     unsigned int GetPosition();
     unsigned int GetLength();
@@ -23,8 +26,7 @@ public:
 
 private:
     void ErrorCheck(FMOD_RESULT reuslt, const char* file, int line);
-
-    enum class State {INIT, TOPLAY, LOADING, PLAYING, STOPPING, STOPPED};
+   
     State mState;
     FMOD::Channel *mChannel;
     FMOD::ChannelGroup *mParent;
