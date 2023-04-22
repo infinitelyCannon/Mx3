@@ -13,23 +13,6 @@ small runtime CPU hit.
 #include <fstream>
 #include <string>
 
-struct Test
-{
-    Test(std::string s) : msg(s) {}
-    std::string msg;
-};
-
-FMOD_RESULT F_CALLBACK GoodCallback(FMOD_CHANNELCONTROL* ctrl, FMOD_CHANNELCONTROL_TYPE ctrlType, FMOD_CHANNELCONTROL_CALLBACK_TYPE callType, void* data1, void* data2)
-{
-    if (ctrlType == FMOD_CHANNELCONTROL_TYPE::FMOD_CHANNELCONTROL_CHANNEL && callType == FMOD_CHANNELCONTROL_CALLBACK_TYPE::FMOD_CHANNELCONTROL_CALLBACK_END)
-    {
-        bool temp = false;
-        temp = true;
-    }
-
-    return FMOD_OK;
-}
-
 int FMOD_Main()
 {
     FMOD::System     *system;
@@ -40,7 +23,6 @@ int FMOD_Main()
     std::ifstream     args;
     std::string       file  = "none";
     int               start = 0, stop = 0;
-    Test* test = new Test("Hello");
     
     Common_Init(&extradriverdata);
 
@@ -50,8 +32,6 @@ int FMOD_Main()
         Common_Fatal("Arguments file (args.txt) not found.");
 
     std::getline(args, file);
-    //args >> start;
-    //args >> stop;
 
     args.close();
 
@@ -72,20 +52,6 @@ int FMOD_Main()
     */
     result = system->playSound(sound, 0, false, &channel);
     ERRCHECK(result);
-
-    /*
-    auto F_CALLBACK callback = [&test](FMOD_CHANNELCONTROL* ctrl, FMOD_CHANNELCONTROL_TYPE ctrlType, FMOD_CHANNELCONTROL_CALLBACK_TYPE callType, void* data1, void* data2) -> FMOD_RESULT
-    {
-        if (ctrlType == FMOD_CHANNELCONTROL_TYPE::FMOD_CHANNELCONTROL_CHANNEL && callType == FMOD_CHANNELCONTROL_CALLBACK_TYPE::FMOD_CHANNELCONTROL_CALLBACK_END)
-        {
-            test->msg += " World!";
-        }
-
-        return FMOD_OK;
-    };
-    */
-
-    result = channel->setCallback(GoodCallback);
 
     /*
         Main loop.
@@ -150,7 +116,7 @@ int FMOD_Main()
             Common_Draw("");
             Common_Draw("Press %s to toggle pause", Common_BtnStr(BTN_ACTION1));
             Common_Draw("Press %s to quit", Common_BtnStr(BTN_QUIT));
-            Common_Draw("Test: %s", test->msg.c_str());
+            Common_Draw("Playing: %s", file.c_str());
             Common_Draw("");
             Common_Draw("Time %02d:%02d:%02d/%02d:%02d:%02d : %s", ms / 1000 / 60, ms / 1000 % 60, ms / 10 % 100, lenms / 1000 / 60, lenms / 1000 % 60, lenms / 10 % 100, paused ? "Paused " : playing ? "Playing" : "Stopped");
             Common_Draw("Channels Playing: %d", channelsPlaying);

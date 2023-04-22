@@ -3,6 +3,7 @@
 #include "Song.hpp"
 #include <iostream>
 #include <format>
+#include <algorithm>
 
 #define ERRCHECK(x) ErrorCheck(x, __FILE__, __LINE__)
 
