@@ -38,6 +38,9 @@ int FMOD_Main()
 	int outputrate = 0;
 	bool usingMain = true;
 
+	int num = 0;
+	float volume = 0;
+
 	Common_Init(&externaldata);
 
 	result = FMOD::System_Create(&system);
@@ -54,9 +57,9 @@ int FMOD_Main()
 
 	ERRCHECK(system->playSound(sound, parent, false, &channel));
 
-	ERRCHECK(channel->setCallback(ChannelCallback));
+	//ERRCHECK(channel->setCallback(ChannelCallback));
 
-	ERRCHECK(sound->addSyncPoint(END - 500, FMOD_TIMEUNIT_MS, "Loop_1_End", 0));
+	//ERRCHECK(sound->addSyncPoint(END - 500, FMOD_TIMEUNIT_MS, "Loop_1_End", 0));
 
 	//unsigned long long clock_start = 0;
 	//unsigned int len;
@@ -86,6 +89,17 @@ int FMOD_Main()
 			ERRCHECK(result);
 			result = parent->setPaused(!paused);
 			ERRCHECK(result);
+		}
+
+		if (Common_BtnPress(BTN_ACTION2))
+		{
+			ERRCHECK(parent->getNumChannels(&num));
+			ERRCHECK(parent->getVolume(&volume));
+		}
+
+		if (Common_BtnPress(BTN_ACTION3))
+		{
+			ERRCHECK(parent->stop());
 		}
 
 		ERRCHECK(system->update());
@@ -133,17 +147,20 @@ int FMOD_Main()
 			Common_Draw("==================================================");
 			Common_Draw("");
 			Common_Draw("Press %s to toggle pause", Common_BtnStr(BTN_ACTION1));
-			Common_Draw("Press %s to jump to 3rd measure", Common_BtnStr(BTN_ACTION2));
+			Common_Draw("Press %s to check parent", Common_BtnStr(BTN_ACTION2));
 			Common_Draw("Press %s to quit", Common_BtnStr(BTN_QUIT));
 			Common_Draw("");
 			Common_Draw("Time %02d:%02d:%02d/%02d:%02d:%02d : %s", ms / 1000 / 60, ms / 1000 % 60, ms / 10 % 100, lenms / 1000 / 60, lenms / 1000 % 60, lenms / 10 % 100, paused ? "Paused " : playing ? "Playing" : "Stopped");
 			Common_Draw("Channels Playing: %d", channelsPlaying);
+			Common_Draw("ChannelGroup: %f (%d)", volume, num);
 		}
 
 			Common_Sleep(50);
 	} while (!Common_BtnPress(BTN_QUIT));
 
 	result = sound->release();
+	ERRCHECK(result);
+	result = parent->release();
 	ERRCHECK(result);
 	result = system->close();
 	ERRCHECK(result);

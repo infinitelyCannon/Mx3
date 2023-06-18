@@ -111,6 +111,50 @@ int FMOD_Main()
 
 	ERRCHECK(FMOD::Studio::System::create(&system));
 	ERRCHECK(system->getCoreSystem(&coreSystem));
+
+	int numDrivers = 0;
+	int chosenDriver = -1;
+	int toggledDriver = 0;
+	std::vector<char*> names;
+	ERRCHECK(coreSystem->getNumDrivers(&numDrivers));
+
+	for (int i = 0; i < numDrivers; ++i)
+	{
+		names.push_back(new char[MAX_PATH]);
+		coreSystem->getDriverInfo(i, names[i], MAX_PATH, 0, 0, 0, 0);
+	}
+
+	do
+	{
+		Common_Update();
+
+		Common_Draw("Please pick an output device:");
+		for (int i = 0; i < numDrivers; ++i)
+		{
+			Common_Draw("%d - %s", i, names[i]);
+		}
+		Common_Draw("Press %s to cycle up", Common_BtnStr(BTN_UP));
+		Common_Draw("Press %s to cycle down", Common_BtnStr(BTN_DOWN));
+		Common_Draw("Press %s to select driver", Common_BtnStr(BTN_ACTION1));
+
+		if (Common_BtnPress(BTN_UP))
+		{
+			toggledDriver = Common_Clamp(0, toggledDriver + 1, numDrivers - 1);
+		}
+		if (Common_BtnPress(BTN_DOWN))
+		{
+			toggledDriver = Common_Clamp(0, toggledDriver - 1, numDrivers - 1);
+		}
+		if (Common_BtnPress(BTN_ACTION1))
+		{
+			chosenDriver = toggledDriver;
+		}
+
+		Common_Draw("Selected Driver: %d", toggledDriver);
+		Common_Sleep(50);
+	} while (chosenDriver < 0);
+
+	ERRCHECK(coreSystem->setDriver(chosenDriver));
 	ERRCHECK(system->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL | FMOD_INIT_PROFILE_ENABLE, 0));
 
 	ERRCHECK(system->loadBankFile("C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Build\\Desktop\\Master Bank.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank));
@@ -192,10 +236,10 @@ int FMOD_Main()
 
 		ERRCHECK(eventInst->getTimelinePosition(&ms));
 
-		Common_Draw("==================================================");
-		Common_Draw("Event Parameter Example.");
-		Common_Draw("Copyright (c) Firelight Technologies 2012-2019.");
-		Common_Draw("==================================================");
+		//Common_Draw("==================================================");
+		//Common_Draw("Event Parameter Example.");
+		//Common_Draw("Copyright (c) Firelight Technologies 2012-2019.");
+		//Common_Draw("==================================================");
 		Common_Draw("Press %s to play event", Common_BtnStr(BTN_MORE));
 		Common_Draw("Press %s to rewind by 10 secs.", Common_BtnStr(BTN_ACTION2));
 		Common_Draw("Press %s to skip ahead by 10 secs.", Common_BtnStr(BTN_ACTION3));

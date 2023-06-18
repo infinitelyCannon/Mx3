@@ -1,40 +1,34 @@
-#ifndef MX3_SONG
-#define MX3_SONG
+#pragma once
 
-#include <functional>
-#include <string>
 #include "fmod.hpp"
-
-typedef std::function<void(const char* msg)> ErrorCallback;
+#include "Mx3.hpp"
 
 class Song 
 {
 public:
-    Song(FMOD::System *system, FMOD::Sound *sound, FMOD::ChannelGroup* parent);
-    ~Song();
+    Song(Implementation& implementation, FMOD::Sound* sound);
 
-    enum class State { INIT, TOPLAY, LOADING, PLAYING, STOPPING, STOPPED };
+    enum class State
+    {
+        Init,
+        ToPlay,
+        Loading,
+        Playing,
+        Stopping,
+        Stopped
+    };
 
     void Update(float deltaTime);
-    bool IsStopped() const;
-    State GetState() const;
-    static void SetErrorCallback(ErrorCallback callback);
-    unsigned int GetPosition();
-    unsigned int GetLength();
-    void Stop();
-    void SetRepeatMode(int mode);
+    bool IsPlaying();
+    void SetVolume(float volume);
+    inline State GetState() { return _state; }
+    static ErrorCallback _errorCallback;
 
 private:
-    void ErrorCheck(FMOD_RESULT reuslt, const char* file, int line);
-   
-    State eState;
-    FMOD::Channel *mChannel;
-    FMOD::ChannelGroup *mParent;
-    FMOD::Sound *mSound;
-    FMOD::System *mSystem;
-    unsigned int Length;
-    bool bStopRequested = false;
-    static ErrorCallback mErrorCallback;
-};
+    bool IsSoundLoaded();
 
-#endif
+    Implementation& _implementation;
+    FMOD::Channel* _channel;
+    FMOD::Sound* _sound;
+    State _state;
+};
