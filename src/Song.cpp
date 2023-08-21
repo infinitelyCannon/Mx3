@@ -42,8 +42,8 @@ void Song::Update(float deltaTime)
 {
 	switch (_state)
 	{
-		case Song::State::Init:
-		case Song::State::ToPlay:
+		case State::Init:
+		case State::ToPlay:
 			if (!IsSoundLoaded())
 			{
 				_state = State::Loading;
@@ -57,17 +57,17 @@ void Song::Update(float deltaTime)
 			));
 			_state = State::Playing;
 			break;
-		case Song::State::Loading:
+		case State::Loading:
 			if (IsSoundLoaded())
 			{
 				_state = State::ToPlay;
 			}
 			break;
-		case Song::State::Playing:
+		case State::Playing:
 			break;
-		case Song::State::Stopping:
+		case State::Stopping:
 			break;
-		case Song::State::Stopped:
+		case State::Stopped:
 			break;
 		default:
 			break;
