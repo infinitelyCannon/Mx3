@@ -1,8 +1,7 @@
 /*==============================================================================
 FMOD Example Framework
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2019.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
 ==============================================================================*/
-#define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
 
 int FMOD_Main();
@@ -14,25 +13,4 @@ int FMOD_Main();
 
 void Common_TTY(const char *format, ...);
 
-typedef CRITICAL_SECTION Common_Mutex;
-
-inline void Common_Mutex_Create(Common_Mutex *mutex)
-{
-    InitializeCriticalSection(mutex);
-}
-
-inline void Common_Mutex_Destroy(Common_Mutex *mutex)
-{
-    DeleteCriticalSection(mutex);
-}
-
-inline void Common_Mutex_Enter(Common_Mutex *mutex)
-{
-    EnterCriticalSection(mutex);
-}
-
-inline void Common_Mutex_Leave(Common_Mutex *mutex)
-{
-    LeaveCriticalSection(mutex);
-}
 

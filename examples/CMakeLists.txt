@@ -1,4 +1,4 @@
-# These functions grab the appropriate dll (Debug or Release) and copies it to the build folder
+# These functions grab the appropriate DLLs (Debug or Release) and copies it to the build folder
 function(fmod_post_build tar library cpu)
 	if(WIN32)
 		string(REPLACE "api/core/inc" "api" FMOD_BASE "${FMOD_CORE_DIR}")
@@ -36,12 +36,12 @@ if(UNIX)
 	set(PLATFORM_FILE "linux/common_platform.cpp")
 endif()
 
-add_executable(FmodTest 
+add_executable(FmodTest WIN32 
 	fmod_test.cpp 
 	common.cpp 
 	"${PLATFORM_FILE}")
 
-add_executable(LoopTest loop_test.cpp common.cpp "${PLATFORM_FILE}")
+add_executable(LoopTest WIN32 loop_test.cpp common.cpp "${PLATFORM_FILE}")
 
 if(UNIX AND USE_ZMQ) #If you want to use a seperate terminal for output (and have FMOD print to std out)
 	find_package(cppzmq)

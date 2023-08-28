@@ -37,6 +37,7 @@ void Song::SetVolume(float volume)
 * goal: get the whole thing to the point where you can pass a file and two 
 * numbers to it to play through example loop songs. So I can test out different
 * UI kits for a front end and have a skeleton for having the hot-swaping system.
+* Esentially it looks like you just need a way to schedule jumps. From one playing song to another (even if it's to a different point of the same song.)
 */
 void Song::Update(float deltaTime)
 {

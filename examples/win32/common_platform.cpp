@@ -1,6 +1,6 @@
 /*==============================================================================
 FMOD Example Framework
-Copyright (c), Firelight Technologies Pty, Ltd 2012-2019.
+Copyright (c), Firelight Technologies Pty, Ltd 2012-2023.
 ==============================================================================*/
 #define WIN32_LEAN_AND_MEAN
 
@@ -11,13 +11,15 @@ Copyright (c), Firelight Technologies Pty, Ltd 2012-2019.
 #include <Objbase.h>
 #include <vector>
 
+static HWND gWindow = nullptr;
+static int gScreenWidth = 0;
+static int gScreenHeight = 0;
 static unsigned int gPressedButtons = 0;
 static unsigned int gDownButtons = 0;
-static HANDLE gConsoleHandle = NULL;
-static CHAR_INFO gConsoleBuffer[NUM_COLUMNS * NUM_ROWS] = {0};
-static char gWriteBuffer[NUM_COLUMNS * NUM_ROWS] = {0};
+static char gWriteBuffer[(NUM_COLUMNS+1) * NUM_ROWS] = {0};
+static char gDisplayBuffer[(NUM_COLUMNS+1) * NUM_ROWS] = {0};
 static unsigned int gYPos = 0;
-static bool gPaused = false;
+static bool gQuit = false;
 static std::vector<char *> gPathList;
 
 bool Common_Private_Test;
@@ -27,58 +29,8 @@ void (*Common_Private_Update)(unsigned int*);
 void (*Common_Private_Print)(const char*);
 void (*Common_Private_Close)();
 
-int main(int argc, char** argv)
-{
-    Common_Private_Argc = argc;
-    Common_Private_Argv = argv;
-    return FMOD_Main();
-}
-
 void Common_Init(void** /*extraDriverData*/)
 {
-    gConsoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
-
-    CONSOLE_SCREEN_BUFFER_INFO bufferInfo = {0};
-    GetConsoleScreenBufferInfo(gConsoleHandle, &bufferInfo);
-
-    // Set window and buffer width, order is important buffer must always be >= window
-    unsigned int windowWidth = bufferInfo.srWindow.Left + bufferInfo.srWindow.Right;
-    bufferInfo.dwSize.X = NUM_COLUMNS;
-    bufferInfo.srWindow.Right = bufferInfo.srWindow.Left + (NUM_COLUMNS - 1);
-    if (NUM_COLUMNS > windowWidth)
-    {
-        SetConsoleScreenBufferSize(gConsoleHandle, bufferInfo.dwSize);
-        SetConsoleWindowInfo(gConsoleHandle, TRUE, &bufferInfo.srWindow);
-    }
-    else
-    {       
-        SetConsoleWindowInfo(gConsoleHandle, TRUE, &bufferInfo.srWindow);
-        SetConsoleScreenBufferSize(gConsoleHandle, bufferInfo.dwSize);
-    }
-
-    // Set window and buffer height, order is important buffer must always be >= window
-    unsigned int windowHeight = bufferInfo.srWindow.Top + bufferInfo.srWindow.Bottom;
-    bufferInfo.dwSize.Y = NUM_ROWS;
-    bufferInfo.srWindow.Bottom = bufferInfo.srWindow.Top + (NUM_ROWS - 1);
-    if (NUM_ROWS > windowHeight)
-    {
-        SetConsoleScreenBufferSize(gConsoleHandle, bufferInfo.dwSize);
-        SetConsoleWindowInfo(gConsoleHandle, TRUE, &bufferInfo.srWindow);
-    }
-    else
-    {       
-        SetConsoleWindowInfo(gConsoleHandle, TRUE, &bufferInfo.srWindow);
-        SetConsoleScreenBufferSize(gConsoleHandle, bufferInfo.dwSize);
-    }
-
-    // Hide the cursor
-    CONSOLE_CURSOR_INFO cursorInfo = {0};
-    cursorInfo.bVisible = false;
-    cursorInfo.dwSize = 100;
-    SetConsoleCursorInfo(gConsoleHandle, &cursorInfo);
-
-    SetConsoleTitleA("FMOD Example");
-
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
 }
 
@@ -96,69 +48,52 @@ void Common_Close()
     }
 }
 
+static unsigned int getButtonState()
+{
+    unsigned int buttons = 0;
+
+    if (GetAsyncKeyState('1')       & 0x8000) buttons |= (1 << BTN_ACTION1);
+    if (GetAsyncKeyState('2')       & 0x8000) buttons |= (1 << BTN_ACTION2);
+    if (GetAsyncKeyState('3')       & 0x8000) buttons |= (1 << BTN_ACTION3);
+    if (GetAsyncKeyState('4')       & 0x8000) buttons |= (1 << BTN_ACTION4);
+    if (GetAsyncKeyState(VK_LEFT)   & 0x8000) buttons |= (1 << BTN_LEFT);
+    if (GetAsyncKeyState(VK_RIGHT)  & 0x8000) buttons |= (1 << BTN_RIGHT);
+    if (GetAsyncKeyState(VK_UP)     & 0x8000) buttons |= (1 << BTN_UP);
+    if (GetAsyncKeyState(VK_DOWN)   & 0x8000) buttons |= (1 << BTN_DOWN);
+    if (GetAsyncKeyState(VK_SPACE)  & 0x8000) buttons |= (1 << BTN_MORE);
+    if (GetAsyncKeyState(VK_ESCAPE) & 0x8000) buttons |= (1 << BTN_QUIT);
+
+    return buttons;
+}
+
 void Common_Update()
 {
-    /*
-        Capture key input
-    */
-    unsigned int newButtons = 0;
-    while (_kbhit())
+    MSG msg = { };
+    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE))
     {
-        int key = _getch();
-        if (key == 0 || key == 224)
-        {
-            key = 256 + _getch(); // Handle multi-char keys
-        }
-
-        if      (key == '1')    newButtons |= (1 << BTN_ACTION1);
-        else if (key == '2')    newButtons |= (1 << BTN_ACTION2);
-        else if (key == '3')    newButtons |= (1 << BTN_ACTION3);
-        else if (key == '4')    newButtons |= (1 << BTN_ACTION4);
-        else if (key == 256+75) newButtons |= (1 << BTN_LEFT);
-        else if (key == 256+77) newButtons |= (1 << BTN_RIGHT);
-        else if (key == 256+72) newButtons |= (1 << BTN_UP);
-        else if (key == 256+80) newButtons |= (1 << BTN_DOWN);
-        else if (key == 32)     newButtons |= (1 << BTN_MORE);
-        else if (key == 27)     newButtons |= (1 << BTN_QUIT);
-        else if (key == 112)    gPaused = !gPaused;
+        TranslateMessage(&msg);
+        DispatchMessage(&msg);
     }
 
+    unsigned int newButtons = getButtonState();
+    newButtons |= (gQuit ? (1 << BTN_QUIT) : 0);
     gPressedButtons = (gDownButtons ^ newButtons) & newButtons;
     gDownButtons = newButtons;
 
-    /*
-        Update the screen
-    */
-    if (!gPaused)
-    {
-        for (unsigned int i = 0; i < NUM_COLUMNS * NUM_ROWS; i++)
-        {
-            gConsoleBuffer[i].Char.AsciiChar = gWriteBuffer[i];
-            gConsoleBuffer[i].Attributes = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
-        }
+    memcpy(gDisplayBuffer, gWriteBuffer, sizeof(gWriteBuffer));
+    InvalidateRect(gWindow, nullptr, FALSE);
 
-        COORD bufferSize = {NUM_COLUMNS, NUM_ROWS};
-        COORD bufferCoord = {0, 0};
-        SMALL_RECT writeRegion = {0, 0, NUM_COLUMNS - 1, NUM_ROWS - 1};
-        WriteConsoleOutput(gConsoleHandle, gConsoleBuffer, bufferSize, bufferCoord, &writeRegion);
-        fflush(stdout);
-    }
-
-    /*
-        Reset the write buffer
-    */
     gYPos = 0;
     memset(gWriteBuffer, ' ', sizeof(gWriteBuffer));
+    for (int i = 0; i < NUM_ROWS; i++)
+    {
+        gWriteBuffer[(i * (NUM_COLUMNS + 1)) + NUM_COLUMNS] = '\n';
+    }
 
     if (Common_Private_Update)
     {
         Common_Private_Update(&gPressedButtons);
     }
-}
-
-void Common_Sleep(unsigned int ms)
-{
-    Sleep(ms);
 }
 
 void Common_Exit(int returnCode)
@@ -170,32 +105,11 @@ void Common_DrawText(const char *text)
 {
     if (gYPos < NUM_ROWS)
     {
-        Common_Format(&gWriteBuffer[gYPos * NUM_COLUMNS], NUM_COLUMNS, "%s", text);
+        char tempBuffer[NUM_COLUMNS + 1];
+        Common_Format(tempBuffer, sizeof(tempBuffer), "%s", text);
+        memcpy(&gWriteBuffer[gYPos * (NUM_COLUMNS + 1)], tempBuffer, strlen(tempBuffer));
         gYPos++;
     }
-}
-
-void Common_LoadFileMemory(const char *name, void **buff, int *length)
-{
-    FILE *file = NULL;
-    file = fopen(name, "rb");
-    
-    fseek(file, 0, SEEK_END);
-    long len = ftell(file);
-    fseek(file, 0, SEEK_SET);
-    
-    void *mem = malloc(len);
-    fread(mem, 1, len, file);
-    
-    fclose(file);
-
-    *buff = mem;
-    *length = len;
-}
-
-void Common_UnloadFileMemory(void *buff)
-{
-    free(buff);
 }
 
 bool Common_BtnPress(Common_Button btn)
@@ -216,12 +130,12 @@ const char *Common_BtnStr(Common_Button btn)
         case BTN_ACTION2:   return "2";
         case BTN_ACTION3:   return "3";
         case BTN_ACTION4:   return "4";
-        case BTN_LEFT:      return "LEFT";
-        case BTN_RIGHT:     return "RIGHT";
-        case BTN_UP:        return "UP";
-        case BTN_DOWN:      return "DOWN";
-        case BTN_MORE:      return "SPACE";
-        case BTN_QUIT:      return "ESCAPE";
+        case BTN_LEFT:      return "Left";
+        case BTN_RIGHT:     return "Right";
+        case BTN_UP:        return "Up";
+        case BTN_DOWN:      return "Down";
+        case BTN_MORE:      return "Space";
+        case BTN_QUIT:      return "Escape";
         default:            return "Unknown";
     }
 }
@@ -230,8 +144,26 @@ const char *Common_MediaPath(const char *fileName)
 {
     char *filePath = (char *)calloc(256, sizeof(char));
 
-    strcat(filePath, "../../media/");
+    static const char* pathPrefix = nullptr;
+    if (!pathPrefix)
+    {
+        const char *emptyPrefix = "";
+        const char *mediaPrefix = "../media/";
+        FILE *file = fopen(fileName, "r");
+        if (file)
+        {
+            fclose(file);
+            pathPrefix = emptyPrefix;
+        }
+        else
+        {
+            pathPrefix = mediaPrefix;
+        }
+    }
+
+    strcat(filePath, pathPrefix);
     strcat(filePath, fileName);
+
     gPathList.push_back(filePath);
 
     return filePath;
@@ -261,3 +193,106 @@ void Common_TTY(const char *format, ...)
     }
 }
 
+HFONT CreateDisplayFont()
+{
+    return CreateFontA(22, 0, 0, 0, FW_DONTCARE, FALSE, FALSE, FALSE, DEFAULT_CHARSET, OUT_OUTLINE_PRECIS,
+        CLIP_DEFAULT_PRECIS, DEFAULT_QUALITY, FIXED_PITCH, 0);
+}
+
+LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+    if (message == WM_PAINT)
+    {
+        PAINTSTRUCT ps;
+        HDC hdc = BeginPaint(hWnd, &ps);
+        HDC hdcBack = CreateCompatibleDC(hdc);
+        
+        HBITMAP hbmBack = CreateCompatibleBitmap(hdc, gScreenWidth, gScreenHeight);
+        HBITMAP hbmOld = (HBITMAP)SelectObject(hdcBack, hbmBack);
+
+        HFONT hfnt = CreateDisplayFont();
+        HFONT hfntOld = (HFONT)SelectObject(hdcBack, hfnt);
+
+        SetBkColor(hdcBack, RGB(0x0, 0x0, 0x0));
+        SetTextColor(hdcBack, RGB(0xFF, 0xFF, 0xFF));
+        DrawTextA(hdcBack, gDisplayBuffer, -1, &ps.rcPaint, 0);
+        BitBlt(hdc, 0, 0, gScreenWidth, gScreenHeight, hdcBack, 0, 0, SRCCOPY);
+
+        SelectObject(hdcBack, hfntOld);
+        DeleteObject(hfnt);
+
+        SelectObject(hdcBack, hbmOld);
+        DeleteObject(hbmBack);
+
+        DeleteDC(hdcBack);
+        EndPaint(hWnd, &ps);
+    }
+    else if (message == WM_DESTROY)
+    {
+        gQuit = true;
+    }
+    else if (message == WM_GETMINMAXINFO)
+    {
+        if (gScreenWidth == 0)
+        {
+            HDC hdc = GetDC(hWnd);
+
+            HFONT hfnt = CreateDisplayFont();
+            HFONT hfntOld = (HFONT)SelectObject(hdc, hfnt);
+
+            TEXTMETRICA metrics = { };
+            GetTextMetricsA(hdc, &metrics);
+
+            SelectObject(hdc, hfntOld);
+            DeleteObject(hfnt);
+
+            ReleaseDC(hWnd, hdc);
+
+            RECT rec = { };
+            rec.right = metrics.tmAveCharWidth * NUM_COLUMNS;
+            rec.bottom = metrics.tmHeight * NUM_ROWS;
+
+            BOOL success = AdjustWindowRect(&rec, WS_CAPTION | WS_SYSMENU, FALSE);
+            assert(success);
+
+            gScreenWidth = rec.right - rec.left;
+            gScreenHeight = rec.bottom - rec.top;
+        }
+
+        LPMINMAXINFO lpMMI = (LPMINMAXINFO)lParam;
+        lpMMI->ptMinTrackSize.x = gScreenWidth;
+        lpMMI->ptMinTrackSize.y = gScreenHeight;
+        lpMMI->ptMaxTrackSize = lpMMI->ptMinTrackSize;
+    }
+    else
+    {
+        return DefWindowProc(hWnd, message, wParam, lParam);
+    }
+
+    return 0;
+}
+
+int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE /*hPrevInstance*/, PSTR /*pCmdLine*/, int nCmdShow)
+{
+    const char CLASS_NAME[] = "FMOD Example Window Class";
+
+    Common_Private_Argc = __argc;
+    Common_Private_Argv = __argv;
+
+    WNDCLASSA wc = { };
+    wc.style = CS_HREDRAW | CS_VREDRAW;
+    wc.lpfnWndProc = WndProc;
+    wc.hInstance = hInstance;
+    wc.hbrBackground = (HBRUSH)GetStockObject(BLACK_BRUSH);
+    wc.lpszClassName = CLASS_NAME;
+
+    ATOM atom = RegisterClassA(&wc);
+    assert(atom);
+
+    gWindow = CreateWindowA(CLASS_NAME, "FMOD Example", WS_CAPTION | WS_SYSMENU, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, nullptr, nullptr, hInstance, nullptr);
+    assert(gWindow);
+
+    ShowWindow(gWindow, nCmdShow);
+
+    return FMOD_Main();
+}
