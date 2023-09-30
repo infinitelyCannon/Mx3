@@ -13,7 +13,7 @@
 * samples = ms * samplerate / 1000
 */
 
-#define FILE "C:\\Users\\Sigmund\\Desktop\\Temp\\Title Screen.mp3"
+#define FILE "C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Assets\\RIVE\\waterworks_murky_medium_01.ogg"
 #define START 16019
 #define END 80086
 
@@ -44,39 +44,39 @@ int FMOD_Main()
 	Common_Init(&externaldata);
 
 	result = FMOD::System_Create(&system);
-	ERRCHECK(result);
+	ERRCHK(result);
 
 	result = system->init(32, FMOD_INIT_NORMAL, externaldata);
-	ERRCHECK(result);
+	ERRCHK(result);
 
-	ERRCHECK(system->getSoftwareFormat(&outputrate, 0, 0));
+	ERRCHK(system->getSoftwareFormat(&outputrate, 0, 0));
 
-	ERRCHECK(system->createStream(FILE, FMOD_2D | FMOD_ACCURATETIME, 0, &sound));
+	ERRCHK(system->createStream(FILE, FMOD_2D | FMOD_ACCURATETIME | FMOD_LOOP_NORMAL, 0, &sound));
 
-	ERRCHECK(system->createChannelGroup("Parent", &parent));
+	ERRCHK(system->createChannelGroup("Parent", &parent));
 
-	ERRCHECK(system->playSound(sound, parent, false, &channel));
+	ERRCHK(system->playSound(sound, parent, false, &channel));
 
-	//ERRCHECK(channel->setCallback(ChannelCallback));
+	//ERRCHK(channel->setCallback(ChannelCallback));
 
-	//ERRCHECK(sound->addSyncPoint(END - 500, FMOD_TIMEUNIT_MS, "Loop_1_End", 0));
+	//ERRCHK(sound->addSyncPoint(END - 500, FMOD_TIMEUNIT_MS, "Loop_1_End", 0));
 
 	//unsigned long long clock_start = 0;
 	//unsigned int len;
 	//float freq;
 
-	//ERRCHECK(channel->getDSPClock(0, &clock_start));
+	//ERRCHK(channel->getDSPClock(0, &clock_start));
 
-	////ERRCHECK(sound->getLength(&len, FMOD_TIMEUNIT_PCM));
+	////ERRCHK(sound->getLength(&len, FMOD_TIMEUNIT_PCM));
 	//// Double check this math
 	//len = 8011 * outputrate / 1000;
-	//ERRCHECK(sound->getDefaults(&freq, 0));
+	//ERRCHK(sound->getDefaults(&freq, 0));
 
 	//len = (unsigned int)((float)len / freq * outputrate);
 	//clock_start += len;
 
-	//ERRCHECK(channel->setDelay(0, clock_start, false));
-	//ERRCHECK(parent->setPaused(false));
+	//ERRCHK(channel->setDelay(0, clock_start, false));
+	//ERRCHK(parent->setPaused(false));
 
 	do
 	{
@@ -86,23 +86,23 @@ int FMOD_Main()
 		{
 			bool paused;
 			result = parent->getPaused(&paused);
-			ERRCHECK(result);
+			ERRCHK(result);
 			result = parent->setPaused(!paused);
-			ERRCHECK(result);
+			ERRCHK(result);
 		}
 
 		if (Common_BtnPress(BTN_ACTION2))
 		{
-			ERRCHECK(parent->getNumChannels(&num));
-			ERRCHECK(parent->getVolume(&volume));
+			ERRCHK(parent->getNumChannels(&num));
+			ERRCHK(parent->getVolume(&volume));
 		}
 
 		if (Common_BtnPress(BTN_ACTION3))
 		{
-			ERRCHECK(parent->stop());
+			ERRCHK(parent->stop());
 		}
 
-		ERRCHECK(system->update());
+		ERRCHK(system->update());
 
 		{
 			unsigned int ms = 0;
@@ -116,29 +116,29 @@ int FMOD_Main()
 				result = parent->isPlaying(&playing);
 				if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
 				{
-					ERRCHECK(result);
+					ERRCHK(result);
 				}
 
 				result = parent->getPaused(&paused);
 				if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
 				{
-					ERRCHECK(result);
+					ERRCHK(result);
 				}
 
 				result = channel->getPosition(&ms, FMOD_TIMEUNIT_MS);
 				if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
 				{
-					ERRCHECK(result);
+					ERRCHK(result);
 				}
 
 				result = sound->getLength(&lenms, FMOD_TIMEUNIT_MS);
 				if ((result != FMOD_OK) && (result != FMOD_ERR_INVALID_HANDLE))
 				{
-					ERRCHECK(result);
+					ERRCHK(result);
 				}
 
 				result = system->getChannelsPlaying(&channelsPlaying);
-				ERRCHECK(result);
+				ERRCHK(result);
 			}
 
 			Common_Draw("==================================================");
@@ -159,13 +159,13 @@ int FMOD_Main()
 	} while (!Common_BtnPress(BTN_QUIT));
 
 	result = sound->release();
-	ERRCHECK(result);
+	ERRCHK(result);
 	result = parent->release();
-	ERRCHECK(result);
+	ERRCHK(result);
 	result = system->close();
-	ERRCHECK(result);
+	ERRCHK(result);
 	result = system->release();
-	ERRCHECK(result);
+	ERRCHK(result);
 
 	Common_Close();
 

@@ -57,22 +57,22 @@ std::string GetInfo(FMOD::Channel* channel)
 	unsigned int nextPosition = 0;
     std::string result = "";
 
-    ERRCHECK(channel->getLoopCount(&loopCount));
-    ERRCHECK(channel->getLoopPoints(&loopstart, FMOD_TIMEUNIT_MS, &loopend, FMOD_TIMEUNIT_MS));
-    ERRCHECK(channel->getDelay(&dspStart, &dspEnd, &stopChannel));
-    ERRCHECK(channel->getPosition(&nextPosition, FMOD_TIMEUNIT_MS));
-    ERRCHECK(channel->getCurrentSound(&sound));
+    ERRCHK(channel->getLoopCount(&loopCount));
+    ERRCHK(channel->getLoopPoints(&loopstart, FMOD_TIMEUNIT_MS, &loopend, FMOD_TIMEUNIT_MS));
+    ERRCHK(channel->getDelay(&dspStart, &dspEnd, &stopChannel));
+    ERRCHK(channel->getPosition(&nextPosition, FMOD_TIMEUNIT_MS));
+    ERRCHK(channel->getCurrentSound(&sound));
     if (sound)
     {
-        ERRCHECK(sound->getNumSyncPoints(&syncPoints));
+        ERRCHK(sound->getNumSyncPoints(&syncPoints));
 		offsets.reserve(syncPoints);
         for (int i = 0; i < syncPoints; ++i)
         {
 			points.push_back(nullptr);
-            ERRCHECK(sound->getSyncPoint(i, &points[i]));
-            ERRCHECK(sound->getSyncPointInfo(points[i], 0, 0, &offsets[i], FMOD_TIMEUNIT_MS));
+            ERRCHK(sound->getSyncPoint(i, &points[i]));
+            ERRCHK(sound->getSyncPointInfo(points[i], 0, 0, &offsets[i], FMOD_TIMEUNIT_MS));
         }
-        ERRCHECK(sound->getLoopPoints(&soundStart, FMOD_TIMEUNIT_MS, &soundEnd, FMOD_TIMEUNIT_MS));
+        ERRCHK(sound->getLoopPoints(&soundStart, FMOD_TIMEUNIT_MS, &soundEnd, FMOD_TIMEUNIT_MS));
     }
 
     result += "Channel Loop Count: " + std::to_string(loopCount) + "\n";
@@ -109,14 +109,14 @@ int FMOD_Main()
     int outputrate;
     std::string data = "";
 
-	ERRCHECK(FMOD::Studio::System::create(&system));
-	ERRCHECK(system->getCoreSystem(&coreSystem));
+	ERRCHK(FMOD::Studio::System::create(&system));
+	ERRCHK(system->getCoreSystem(&coreSystem));
 
 	int numDrivers = 0;
 	int chosenDriver = -1;
 	int toggledDriver = 0;
 	std::vector<char*> names;
-	ERRCHECK(coreSystem->getNumDrivers(&numDrivers));
+	ERRCHK(coreSystem->getNumDrivers(&numDrivers));
 
 	for (int i = 0; i < numDrivers; ++i)
 	{
@@ -154,17 +154,17 @@ int FMOD_Main()
 		Common_Sleep(50);
 	} while (chosenDriver < 0);
 
-	ERRCHECK(coreSystem->setDriver(chosenDriver));
-	ERRCHECK(system->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL | FMOD_INIT_PROFILE_ENABLE, 0));
+	ERRCHK(coreSystem->setDriver(chosenDriver));
+	ERRCHK(system->initialize(1024, FMOD_STUDIO_INIT_NORMAL, FMOD_INIT_NORMAL | FMOD_INIT_PROFILE_ENABLE, 0));
 
-	ERRCHECK(system->loadBankFile("C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Build\\Desktop\\Master Bank.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank));
-	ERRCHECK(system->loadBankFile("C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Build\\Desktop\\Master Bank.strings.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &stringsBank));
-	ERRCHECK(system->loadBankFile("C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Build\\Desktop\\Please Dont Touch.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &touchBank));
+	ERRCHK(system->loadBankFile("C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Build\\Desktop\\Master Bank.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &masterBank));
+	ERRCHK(system->loadBankFile("C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Build\\Desktop\\Master Bank.strings.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &stringsBank));
+	ERRCHK(system->loadBankFile("C:\\Users\\Sigmund\\Documents\\FMOD Studio\\Music Prototype\\Build\\Desktop\\Please Dont Touch.bank", FMOD_STUDIO_LOAD_BANK_NORMAL, &touchBank));
 
-	ERRCHECK(system->getEvent("event:/Please Dont Touch/Title", &eventDesc));
-	ERRCHECK(eventDesc->createInstance(&eventInst));
+	ERRCHK(system->getEvent("event:/Please Dont Touch/Title", &eventDesc));
+	ERRCHK(eventDesc->createInstance(&eventInst));
 
-	ERRCHECK(coreSystem->getSoftwareFormat(&outputrate, 0, 0));
+	ERRCHK(coreSystem->getSoftwareFormat(&outputrate, 0, 0));
 
 	/*
 		Main loop
@@ -175,15 +175,15 @@ int FMOD_Main()
 
 		if (Common_BtnPress(BTN_MORE))
 		{
-			ERRCHECK(eventInst->start());
+			ERRCHK(eventInst->start());
 		}
 
-		ERRCHECK(system->update());
+		ERRCHK(system->update());
 
 		info = "";
 		for (int k = 0; k < 1024; ++k)
 		{
-			ERRCHECK(coreSystem->getChannel(k, &channel));
+			ERRCHK(coreSystem->getChannel(k, &channel));
 			FMOD_RESULT result;
 			bool playing = false;
 			result = channel->isPlaying(&playing);
@@ -191,25 +191,25 @@ int FMOD_Main()
 			{
 				index = k;
 				bStarted = true;
-				ERRCHECK(coreSystem->getChannel(index, &channel));
+				ERRCHK(coreSystem->getChannel(index, &channel));
 				info += GetInfo(channel);
 			}
 			else if (result != FMOD_ERR_INVALID_HANDLE)
-				ERRCHECK(result);
+				ERRCHK(result);
 		}
 
 		if (Common_BtnPress(BTN_ACTION2))
 		{
 			int position = 0;
-			ERRCHECK(eventInst->getTimelinePosition(&position));
-			ERRCHECK(eventInst->setTimelinePosition(position - 10000));
+			ERRCHK(eventInst->getTimelinePosition(&position));
+			ERRCHK(eventInst->setTimelinePosition(position - 10000));
 		}
 
 		if (Common_BtnPress(BTN_ACTION3))
 		{
 			int position = 0;
-			ERRCHECK(eventInst->getTimelinePosition(&position));
-			ERRCHECK(eventInst->setTimelinePosition(position + 10000));
+			ERRCHK(eventInst->getTimelinePosition(&position));
+			ERRCHK(eventInst->setTimelinePosition(position + 10000));
 		}
 
 		if (Common_BtnPress(BTN_ACTION4))
@@ -218,23 +218,23 @@ int FMOD_Main()
 
 			for (int k = 0; k < 1024; ++k)
 			{
-				ERRCHECK(coreSystem->getChannel(k, &chan));
+				ERRCHK(coreSystem->getChannel(k, &chan));
 				FMOD_RESULT result;
 				bool playing = false;
 				FMOD_MODE mode;
 				result = chan->isPlaying(&playing);
 				if (result == FMOD_OK && playing)
 				{
-					ERRCHECK(chan->getMode(&mode));
+					ERRCHK(chan->getMode(&mode));
 					CheckFlags(mode, k);
 					continue;
 				}
 				else if (result != FMOD_ERR_INVALID_HANDLE)
-					ERRCHECK(result);
+					ERRCHK(result);
 			}
 		}
 
-		ERRCHECK(eventInst->getTimelinePosition(&ms));
+		ERRCHK(eventInst->getTimelinePosition(&ms));
 
 		//Common_Draw("==================================================");
 		//Common_Draw("Event Parameter Example.");
@@ -255,7 +255,7 @@ int FMOD_Main()
 	/*
 		Shut down
 	*/
-	ERRCHECK(system->release());
+	ERRCHK(system->release());
 
 	Common_Close();
 

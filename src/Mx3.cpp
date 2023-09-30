@@ -5,7 +5,7 @@
 Mx3* Mx3::Instance = nullptr;
 ErrorCallback Mx3::_errorCallback = nullptr;
 
-#define ERRCHECK(_result) Mx3::_errorCallback(_result, __FILE__, __LINE__)
+#define ERRCHK(_result) Mx3::_errorCallback(_result, __FILE__, __LINE__)
 
 #pragma region AudioAPI
 Implementation::Implementation() :
@@ -15,16 +15,16 @@ Implementation::Implementation() :
 
 Implementation::Implementation(int maxChannels, unsigned int flags, void* driverData)
 {
-	ERRCHECK(FMOD::System_Create(&_system));
-	ERRCHECK(_system->init(maxChannels, flags, driverData));
+	ERRCHK(FMOD::System_Create(&_system));
+	ERRCHK(_system->init(maxChannels, flags, driverData));
 
-	ERRCHECK(_system->createChannelGroup("Mx3_Main", &_mainChannelGroup));
+	ERRCHK(_system->createChannelGroup("Mx3_Main", &_mainChannelGroup));
 }
 
 bool Implementation::GetPaused()
 {
 	bool paused = false;
-	ERRCHECK(_mainChannelGroup->getPaused(&paused));
+	ERRCHK(_mainChannelGroup->getPaused(&paused));
 	return paused;
 }
 
@@ -36,11 +36,11 @@ bool Implementation::HasSound(const std::string file)
 void Implementation::LoadSound(const std::string file)
 {
 	_sounds[file].push_back(nullptr);
-	ERRCHECK(_system->createSound(file.c_str(),
+	ERRCHK(_system->createSound(file.c_str(),
 		FMOD_2D |
 		FMOD_CREATESTREAM |
 		FMOD_ACCURATETIME |
-		FMOD_LOOP_NORMAL,
+		FMOD_NONBLOCKING,
 		nullptr, &(*_sounds[file].rbegin())
 		));
 }
@@ -64,7 +64,7 @@ void Implementation::SetChannelVolume(int channelID, float volume, bool clamp)
 
 void Implementation::SetPaused(bool paused)
 {
-	ERRCHECK(_mainChannelGroup->setPaused(paused));
+	ERRCHK(_mainChannelGroup->setPaused(paused));
 }
 
 void Implementation::SetVolume(float volume, const bool clamp)
@@ -78,19 +78,19 @@ void Implementation::SetVolume(float volume, const bool clamp)
 		volume = 0;
 	}
 
-	ERRCHECK(_mainChannelGroup->setVolume(volume));
+	ERRCHK(_mainChannelGroup->setVolume(volume));
 }
 
 void Implementation::Stop()
 {
-	ERRCHECK(_mainChannelGroup->stop());
+	ERRCHK(_mainChannelGroup->stop());
 	_channels.clear();
 
 	for (auto it = _sounds.begin(); it != _sounds.end(); ++it)
 	{
 		for (auto vIt = it->second.begin(); vIt != it->second.end(); ++vIt)
 		{
-			ERRCHECK((*vIt)->release());
+			ERRCHK((*vIt)->release());
 		}
 	}
 
@@ -104,7 +104,7 @@ void Implementation::UnloadSound(const std::string file)
 		return;
 	}
 
-	ERRCHECK(_sounds[file].back()->release());
+	ERRCHK(_sounds[file].back()->release());
 	_sounds[file].pop_back();
 
 	if (_sounds[file].empty())
@@ -117,7 +117,7 @@ void Implementation::Update(const float deltaTime)
 {
 	std::vector<ChannelMap::iterator> stoppedChannels;
 
-	ERRCHECK(_system->update());
+	ERRCHK(_system->update());
 
 	for (auto it = _channels.begin(); it != _channels.end(); ++it)
 	{
@@ -136,7 +136,7 @@ void Implementation::Update(const float deltaTime)
 
 Implementation::~Implementation()
 {
-	ERRCHECK(_mainChannelGroup->stop());
+	ERRCHK(_mainChannelGroup->stop());
 
 	_channels.clear();
 
@@ -144,14 +144,13 @@ Implementation::~Implementation()
 	{
 		for (auto vIt = it->second.begin(); vIt != it->second.end(); ++vIt)
 		{
-			ERRCHECK((*vIt)->release());
+			ERRCHK((*vIt)->release());
 		}
 	}
 
 	_sounds.clear();
-	ERRCHECK(_mainChannelGroup->release());
-	ERRCHECK(_system->close());
-	ERRCHECK(_system->release());
+	ERRCHK(_mainChannelGroup->release());
+	ERRCHK(_system->release());
 }
 #pragma endregion AudioAPI
 
@@ -160,6 +159,7 @@ Mx3::Mx3() : Mx3(32, FMOD_INIT_NORMAL, 0)
 {
 }
 
+//TODO: Once you get out of the FMOD example code, add calls to init COM on Windows
 Mx3::Mx3(int maxChannels, unsigned int flags, void* driverData)
 {
 	_implementation = new Implementation(maxChannels, flags, driverData);

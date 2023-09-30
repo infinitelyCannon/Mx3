@@ -36,7 +36,7 @@ FMOD_RESULT F_API FMOD_OS_Thread_Destroy(void *handle);
 
 void (*Common_Private_Error)(FMOD_RESULT, const char *, int);
 
-void ERRCHECK_fn(FMOD_RESULT result, const char *file, int line)
+void ERRCHK_fn(FMOD_RESULT result, const char *file, int line)
 {
     if (result != FMOD_OK)
     {

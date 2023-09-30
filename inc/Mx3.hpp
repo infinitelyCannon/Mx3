@@ -7,6 +7,10 @@
 #include <memory>
 #include "fmod.hpp"
 
+#ifdef WIN32
+#undef PlaySound
+#endif
+
 typedef std::function<void(FMOD_RESULT, const char*, int)> ErrorCallback;
 class Song;
 
@@ -60,5 +64,5 @@ private:
 	void UnloadSound(const std::string path);
 
 	Implementation* _implementation = nullptr;
-	static Mx3* Instance;
+	static Mx3* Instance; // For the FMOD callback(s)
 };

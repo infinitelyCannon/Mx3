@@ -76,8 +76,8 @@ void Common_Mutex_Leave(Common_Mutex *mutex);
 void Common_Thread_Create(void (*callback)(void *param), void *param, void **handle);
 void Common_Thread_Destroy(void *handle);
 
-void ERRCHECK_fn(FMOD_RESULT result, const char *file, int line);
-#define ERRCHECK(_result) ERRCHECK_fn(_result, __FILE__, __LINE__)
+void ERRCHK_fn(FMOD_RESULT result, const char *file, int line);
+#define ERRCHK(_result) ERRCHK_fn(_result, __FILE__, __LINE__)
 #define Common_Max(_a, _b) ((_a) > (_b) ? (_a) : (_b))
 #define Common_Min(_a, _b) ((_a) < (_b) ? (_a) : (_b))
 #define Common_Clamp(_min, _val, _max) ((_val) < (_min) ? (_min) : ((_val) > (_max) ? (_max) : (_val)))

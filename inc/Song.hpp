@@ -26,6 +26,7 @@ public:
 
 private:
     bool IsSoundLoaded();
+    void ErrorCheck(FMOD_RESULT result, const char *file, int line);
 
     Implementation& _implementation;
     FMOD::Channel* _channel;
